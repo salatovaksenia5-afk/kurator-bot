@@ -169,7 +169,9 @@ def main_kb(role: Optional[str] = None) -> ReplyKeyboardMarkup:
 
 # ======================= БОТ =======================
 
-bot = Bot(TOKEN, parse_mode=ParseMode.HTML)
+from aiogram.client.default import DefaultBotProperties
+bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+
 dp = Dispatcher()
 
 # ---------- Вспомогательное: сформировать текст задания дня ----------
@@ -524,3 +526,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
