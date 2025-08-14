@@ -1,2 +1,2 @@
-aiogram>=3.7.0
-pytz
+aiogram==3.13.1
+pytz==2024.1
