@@ -592,6 +592,38 @@ async def admin_stats(m: Message):
     for uid, u in last:
         lines.append(f"{uid}: {u.get('name') or '—'} | {u.get('role')} | subj:{u.get('subject') or '—'} | idx:{u.get('guide_index', 0)}")
     await m.answer("\n".join(lines))
+    # Команда для админа — список сдачи тестов
+@dp.message(Command("tests"))
+async def tests_panel(message: Message):
+    if ADMIN_ID and message.from_user.id != ADMIN_ID:
+        return
+    lines = ["📋 Состояние заданий:"]
+    for uid, u in USERS.items():
+        name = u.get("full_name") or uid
+        role = u.get("role", "—")
+        subject = u.get("subject", "—")
+        prog = u.get("progress", {})
+        
+        # Находим текущий гайд для пользователя
+        guide_id = None
+        if role == "newbie":
+            idx = u.get("guide_index", 0)
+            if idx < len(GUIDES["newbie"]):
+                guide_id = GUIDES["newbie"][idx]["id"]
+        elif role == "letnik" and GUIDES["letnik"]:
+            guide_id = GUIDES["letnik"][0]["id"]
+        
+        # Определяем статус
+        if guide_id and guide_id in prog:
+            task_done = prog[guide_id].get("task_done", False)
+            status = "✅ Сдано" if task_done else "❌ Не сдано"
+        else:
+            status = "⏳ Нет данных"
+        
+        lines.append(f"{name} ({role}, {subject}) — {status}")
+    
+    await message.answer("\n".join(lines))
+
 
 
 # =========================
@@ -706,4 +738,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
