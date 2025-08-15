@@ -20,6 +20,20 @@
   STORAGE_FILE     — путь к файлу с прогрессом, по умолчанию /tmp/kurator_data.json
 """
 
+import threading
+from aiohttp import web
+
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+def run_web():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    web.run_app(app, port=10000)
+
+# Запуск фейкового веб-сервера в отдельном потоке
+threading.Thread(target=run_web).start()
+
 import asyncio
 import json
 import os
@@ -574,4 +588,5 @@ app = create_app()
 # Локальный запуск (не для Render). На Render будет uvicorn main:app
 if __name__ == "__main__":
     web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", "8080")))
+
 
