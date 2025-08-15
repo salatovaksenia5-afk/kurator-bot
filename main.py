@@ -1,27 +1,41 @@
+# main.py
 import os
-import asyncio
 import json
+import asyncio
+from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, time, timezone
 
 from aiohttp import web
-from aiogram import Bot, Dispatcher, F
+
+from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
-    Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton
 )
 
-# -----------------------
+# =========================
 # НАСТРОЙКИ / КОНСТАНТЫ
-# -----------------------
+# =========================
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 if not BOT_TOKEN:
-    raise RuntimeError("Нет BOT_TOKEN. Добавь переменную окружения BOT_TOKEN на Render.")
+    raise RuntimeError("Нет BOT_TOKEN. Задай переменную окружения BOT_TOKEN на Render.")
 
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0") or "0")  # ID админа
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0") or "0")
+ACCESS_CODE = os.getenv("ACCESS_CODE", "летл2025").strip()
+
 TIMEZONE = timezone(timedelta(hours=3))  # МСК
-REMIND_HOURS = [14, 21]  # напоминания в 14:00 и 21:00
+REMIND_HOUR = 14  # напоминание новичкам в 14:00
+DEADLINE_HOUR = 22  # дедлайн сдачи задания в 22:00
+
 PORT = int(os.getenv("PORT", "10000"))
 
 DATA_DIR = "data"
@@ -30,9 +44,10 @@ GUIDES_FILE = os.path.join(DATA_DIR, "guides.json")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# -----------------------
-# ПАМЯТЬ (JSON "БД")
-# -----------------------
+
+# =========================
+# ДАННЫЕ / ПАМЯТЬ
+# =========================
 def _read_json(path: str, default):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -42,362 +57,647 @@ def _read_json(path: str, default):
     except Exception:
         return default
 
+
 def _write_json(path: str, payload):
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     os.replace(tmp, path)
 
-def load_users():
-    data = _read_json(USERS_FILE, {})
-    for uid, u in data.items():
-        u.setdefault("fio", None)               # ФИО пользователя
-        u.setdefault("role", "newbie")           # newbie / letnik
-        u.setdefault("subject", None)            # выбранный предмет
-        u.setdefault("guide_index", 0)           # номер текущего гайда
-        u.setdefault("last_guide_sent_at", None) # ISO строка
-        u.setdefault("progress", {})             # {guide_id: {"read": bool, "task_done": bool}}
-        u.setdefault("created_at", datetime.now(TIMEZONE).isoformat())
-    return data
-
-def save_users(data):
-    _write_json(USERS_FILE, data)
 
 def load_guides():
+    """
+    Структура:
+    {
+      "newbie": [ {"id":"n1","title":"...","url":"..."},
+                  {"id":"n2","title":"...","url":"..."},
+                  {"id":"n3","title":"...","url":"..."} ],
+      "letnik": [ {"id":"l1","title":"...","url":"..."}, ... ],
+      "subjects": ["информатика", "физика", "русский язык", "обществознание", "биология", "химия"],
+      "tasks_third_by_subject": {
+          "<subject>": "Текст задания для 3-го гайда этого предмета"
+      }
+    }
+    """
     data = _read_json(GUIDES_FILE, {})
     if not data:
         data = {
             "newbie": [
-                {"id": "n1", "title": "Гайд 1", "url": "https://example.com/newbie-1"},
-                {"id": "n2", "title": "Гайд 2", "url": "https://example.com/newbie-2"},
-                {"id": "n3", "title": "Гайд 3 (с предметом)", "url": "https://example.com/newbie-3"}
+                {"id": "n1", "title": "Гайд 1: Основы и этика", "url": "https://example.com/g1"},
+                {"id": "n2", "title": "Гайд 2: Техническая часть", "url": "https://example.com/g2"},
+                {"id": "n3", "title": "Гайд 3: Практика с учеником", "url": "https://example.com/g3"},
             ],
             "letnik": [
-                {"id": "l1", "title": "Гайд летник 1", "url": "https://example.com/letnik-1"},
-                {"id": "l2", "title": "Гайд летник 2", "url": "https://example.com/letnik-2"},
-                {"id": "l3", "title": "Гайд летник 3", "url": "https://example.com/letnik-3"}
+                {"id": "l1", "title": "Летник: Гайд A", "url": "https://example.com/la"},
+                {"id": "l2", "title": "Летник: Гайд B", "url": "https://example.com/lb"},
+                {"id": "l3", "title": "Летник: Гайд C", "url": "https://example.com/lc"},
             ],
-            "subjects": ["информатика", "физика", "русский язык", "обществознание", "биология", "химия"]
+            "subjects": [
+                "информатика",
+                "физика",
+                "русский язык",
+                "обществознание",
+                "биология",
+                "химия"
+            ],
+            # Задание для 3-го гайда зависит от предмета (примерные заглушки)
+            "tasks_third_by_subject": {
+                "информатика": "Составь мини-конспект алгоритма решения типовой задачи ЕГЭ и запиши 3 примера.",
+                "физика": "Разбери задачу на законы Ньютона: условия, формулы, решение и ответ.",
+                "русский язык": "Напиши план сочинения по предложенной теме + 3 аргумента.",
+                "обществознание": "Дай определения 5-ти ключевых терминов из темы и приведи примеры.",
+                "биология": "Набросай схему процесса (фотосинтез/клеточное дыхание) и поясни этапы.",
+                "химия": "Составь 3 уравнения реакций по теме и проговори правила уравнивания."
+            }
         }
         _write_json(GUIDES_FILE, data)
     return data
 
-USERS = load_users()
+
 GUIDES = load_guides()
 
-# -----------------------
-# БОТ
-# -----------------------
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-dp = Dispatcher()
-# -----------------------
-# КЛАВИАТУРЫ
-# -----------------------
-def kb_main(role: str):
-    rows = []
-    rows.append([InlineKeyboardButton(text="📚 Все гайды", callback_data="guides:menu")])
-    rows.append([
-        InlineKeyboardButton(text="🧭 Мой прогресс", callback_data="progress:me"),
-        InlineKeyboardButton(text="📨 Отметить задание", callback_data="task:done")
-    ])
-    if role == "newbie":
-        rows.append([InlineKeyboardButton(text="🕗 Мой график гайдов", callback_data="newbie:schedule")])
-    if role == "letnik":
-        rows.append([InlineKeyboardButton(text="⚡ Открыть все гайды", callback_data="letnik:all")])
-    rows.append([InlineKeyboardButton(text="📘 Выбрать предмет", callback_data="subject:menu")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
 
-def kb_subjects():
-    btns = []
-    for s in GUIDES["subjects"]:
-        btns.append([InlineKeyboardButton(text=s.title(), callback_data=f"subject:set:{s}")])
-    return InlineKeyboardMarkup(inline_keyboard=btns)
+# --- модели / утилиты
+@dataclass
+class Progress:
+    role: str = "newbie"              # newbie | letnik
+    name: str | None = None           # "Фамилия Имя"
+    subject: str | None = None
+    allow_letnik: bool = False        # доступ к летникам после кода
+    guide_index: int = 0              # индекс гайда для новичков
+    last_guide_sent_at: str | None = None  # ISO МСК
+    has_read_today: bool = False      # прочитал текущий гайд (новичок, сегодняшний)
+    task_done_dates: list = None      # список ISO дат МСК, когда сдано (для новичков)
+    created_at: str = None            # ISO МСК создания
 
-def kb_guides_list(role: str):
-    items = GUIDES["newbie"] if role == "newbie" else GUIDES["letnik"]
-    rows = []
-    for g in items:
-        rows.append([InlineKeyboardButton(text=g["title"], url=g["url"])])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    def to_dict(self):
+        d = asdict(self)
+        if d["task_done_dates"] is None:
+            d["task_done_dates"] = []
+        return d
 
-def kb_yes_no(cb_yes: str, cb_no: str):
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Да", callback_data=cb_yes),
-         InlineKeyboardButton(text="Нет", callback_data=cb_no)]
-    ])
 
-# -----------------------
-# УТИЛИТЫ
-# -----------------------
-def user(u: Message | CallbackQuery):
-    uid = (u.from_user.id if isinstance(u, Message) else u.from_user.id)
-    if str(uid) not in USERS:
-        USERS[str(uid)] = {
-            "fio": None,
-            "role": "newbie",
-            "subject": None,
-            "guide_index": 0,
-            "last_guide_sent_at": None,
-            "progress": {},
-            "created_at": datetime.now(TIMEZONE).isoformat()
-        }
+def now_msk() -> datetime:
+    return datetime.now(TIMEZONE)
+
+
+def today_msk() -> datetime.date:
+    return now_msk().date()
+
+
+def iso(dt: datetime) -> str:
+    return dt.astimezone(TIMEZONE).isoformat()
+
+
+def is_time_before_deadline(dt: datetime) -> bool:
+    return dt.time() < time(DEADLINE_HOUR, 0)
+
+
+def load_users() -> dict[str, dict]:
+    data = _read_json(USERS_FILE, {})
+    # нормализуем
+    changed = False
+    for uid, raw in list(data.items()):
+        # старый формат -> новый
+        if "task_done_dates" not in raw:
+            raw["task_done_dates"] = []
+            changed = True
+        if "has_read_today" not in raw:
+            raw["has_read_today"] = False
+            changed = True
+        if "allow_letnik" not in raw:
+            raw["allow_letnik"] = False
+            changed = True
+        if "created_at" not in raw:
+            raw["created_at"] = iso(now_msk())
+            changed = True
+    if changed:
+        _write_json(USERS_FILE, data)
+    return data
+
+
+def save_users(data: dict):
+    _write_json(USERS_FILE, data)
+
+
+USERS: dict[str, dict] = load_users()
+
+
+def get_user(uid: int) -> Progress:
+    key = str(uid)
+    if key not in USERS:
+        USERS[key] = Progress(created_at=iso(now_msk())).to_dict()
         save_users(USERS)
-    return USERS[str(uid)]
+    p = Progress(**USERS[key])
+    # пост-нормализация
+    if p.task_done_dates is None:
+        p.task_done_dates = []
+    return p
 
-def is_after_8_msk(dt: datetime):
-    return dt.astimezone(TIMEZONE).time() >= time(8, 0)
 
-async def send_newbie_next_guide(uid: int):
-    u = USERS.get(str(uid))
-    if not u or u.get("role") != "newbie":
+def put_user(uid: int, p: Progress):
+    USERS[str(uid)] = p.to_dict()
+    save_users(USERS)
+
+
+# =========================
+# КЛАВИАТУРЫ
+# =========================
+def kb_role() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="Я новичок"), KeyboardButton(text="Я летник")]
+        ],
+        resize_keyboard=True
+    )
+
+
+def kb_main_newbie(p: Progress) -> InlineKeyboardMarkup:
+    # кнопки читаем/задание показываем только если выбран предмет
+    rows = []
+    rows.append([InlineKeyboardButton(text="📘 Выбрать предмет", callback_data="subject:menu")])
+    if p.subject:
+        rows.append([InlineKeyboardButton(text="📖 Открыть гайд", callback_data="newbie:open_guide")])
+        rows.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data="newbie:task_done")])
+    rows.append([InlineKeyboardButton(text="📊 Прогресс", callback_data="progress:me")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def kb_main_letnik(p: Progress) -> InlineKeyboardMarkup:
+    rows = []
+    rows.append([InlineKeyboardButton(text="📘 Выбрать предмет", callback_data="subject:menu")])
+    if p.allow_letnik:
+        rows.append([InlineKeyboardButton(text="⚡ Все гайды летника", callback_data="letnik:all")])
+    else:
+        rows.append([InlineKeyboardButton(text="🔒 Ввести код доступа", callback_data="letnik:code")])
+    rows.append([InlineKeyboardButton(text="📊 Прогресс", callback_data="progress:me")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def kb_subjects() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=s.title(), callback_data=f"subject:set:{s}")]
+            for s in GUIDES["subjects"]
+        ]
+    )
+
+
+def kb_read_confirm() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📖 Я прочитал(а) гайд", callback_data="newbie:read_confirm")]
+        ]
+    )
+
+
+# =========================
+# FSM: сбор данных
+# =========================
+class RegStates(StatesGroup):
+    waiting_role = State()
+    waiting_name = State()
+    waiting_subject = State()
+    waiting_letnik_code = State()
+
+
+# =========================
+# ИНИЦИАЛИЗАЦИЯ БОТА
+# =========================
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+dp = Dispatcher()
+router = Router()
+dp.include_router(router)
+
+
+# =========================
+# ХЕЛПЕРЫ ДЛЯ СЦЕНАРИЕВ
+# =========================
+async def send_newbie_today_guide(uid: int, p: Progress):
+    items = GUIDES["newbie"]
+    idx = p.guide_index
+    if idx >= len(items):
+        await bot.send_message(uid, "🎉 Ты прошёл(ла) все новичковые гайды! Сообщи руководителю — можно выдавать статусы.")
         return
-    idx = u.get("guide_index", 0)
+
+    g = items[idx]
+    p.last_guide_sent_at = iso(now_msk())
+    p.has_read_today = False
+    put_user(uid, p)
+
+    text = (
+        f"📘 Сегодняшний гайд:\n<b>{g['title']}</b>\n{g['url']}\n\n"
+        f"После прочтения нажми кнопку ниже. Задание откроется после подтверждения.\n"
+        f"Дедлайн сдачи — <b>{DEADLINE_HOUR}:00</b> по МСК."
+    )
+    await bot.send_message(uid, text, reply_markup=kb_read_confirm())
+
+
+def _today_iso_date() -> str:
+    return today_msk().isoformat()
+
+
+def _third_guide_task_for_subject(subject: str) -> str:
+    tasks = GUIDES.get("tasks_third_by_subject", {})
+    return tasks.get(subject or "", "Индивидуальное задание для 3-го гайда по твоему предмету.")
+
+
+async def send_newbie_task(uid: int, p: Progress):
+    """
+    Выдаём задание (после подтверждения чтения). Если это 3-й гайд — подставляем предметное задание.
+    """
+    idx = p.guide_index
+    # защита
     items = GUIDES["newbie"]
     if idx >= len(items):
-        await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
+        await bot.send_message(uid, "🎉 Новичковые гайды уже все пройдены.")
         return
+
     g = items[idx]
-    # особое задание для 3-го гайда
-    if g["id"] == "n3" and u.get("subject"):
-        task_text = f"Задание по предмету «{u['subject']}»"
+    if g["id"] == "n3":  # третий гайд (по идентификатору в примере)
+        task_text = _third_guide_task_for_subject(p.subject or "")
     else:
-        task_text = "Выполни задание до 22:00"
+        # общее задание-заглушка
+        task_text = "Кратко законспектируй основные мысли гайда и выполни предложенное упражнение."
+
+    # Время — можно ли ещё сдавать?
+    now = now_msk()
+    if not is_time_before_deadline(now):
+        deadline_note = "⚠️ Дедлайн уже прошёл. Кнопка сдачи недоступна."
+    else:
+        deadline_note = f"Сдать можно до <b>{DEADLINE_HOUR}:00</b> МСК."
+
     await bot.send_message(
         uid,
-        f"📘 Сегодняшний гайд: <b>{g['title']}</b>\nСсылка: {g['url']}\n\n{task_text}"
-    )
-    u["last_guide_sent_at"] = datetime.now(TIMEZONE).isoformat()
-    save_users(USERS)
-
-async def send_letnik_all(uid: int):
-    rows = []
-    for g in GUIDES["letnik"]:
-        rows.append(f"• <b>{g['title']}</b> — {g['url']}")
-    text = "⚡ Все гайды для летников:\n\n" + "\n".join(rows)
-    await bot.send_message(uid, text)
-# -----------------------
-# ХЕНДЛЕРЫ
-# -----------------------
-@dp.message(CommandStart())
-async def start(message: Message):
-    u = user(message)
-    if not u["fio"]:
-        await message.answer("Привет! Напиши, пожалуйста, свою фамилию и имя.")
-        return
-    await message.answer(
-        "Выбери свою роль:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🟢 Я новичок", callback_data="role:newbie")],
-            [InlineKeyboardButton(text="🟠 Я летник", callback_data="role:letnik")]
-        ])
+        f"📝 Задание к «{g['title']}»:\n\n{task_text}\n\n{deadline_note}"
     )
 
-@dp.message(F.text & (lambda m: not user(m)["fio"]))
-async def set_fio(message: Message):
-    u = user(message)
-    u["fio"] = message.text.strip()
-    save_users(USERS)
-    await message.answer(
-        "Спасибо! Теперь выбери свою роль:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🟢 Я новичок", callback_data="role:newbie")],
-            [InlineKeyboardButton(text="🟠 Я летник", callback_data="role:letnik")]
-        ])
+
+def can_submit_now() -> bool:
+    """Можно ли нажимать «Я выполнил» сейчас (до 22:00 по МСК)."""
+    return is_time_before_deadline(now_msk())
+
+
+# =========================
+# /start и первичная анкета
+# =========================
+@router.message(CommandStart())
+async def cmd_start(m: Message, state: FSMContext):
+    p = get_user(m.from_user.id)
+    # Сбрасываем шаги и просим роль
+    await state.clear()
+    await state.set_state(RegStates.waiting_role)
+    await m.answer(
+        "Привет! Я бот-куратор.\n\nВыбери свою роль:",
+        reply_markup=kb_role()
     )
 
-@dp.callback_query(F.data.startswith("role:"))
-async def set_role(cb: CallbackQuery):
-    r = cb.data.split(":")[1]
-    u = user(cb)
-    if r == "letnik":
-        await cb.message.answer("Введите код доступа для летников:")
-        u["pending_role"] = "letnik"
-        save_users(USERS)
-    else:
-        u["role"] = "newbie"
-        save_users(USERS)
+
+@router.message(RegStates.waiting_role, F.text.lower().in_({"я новичок", "я летник"}))
+async def choose_role(m: Message, state: FSMContext):
+    p = get_user(m.from_user.id)
+    is_newbie = (m.text.lower() == "я новичок")
+    p.role = "newbie" if is_newbie else "letnik"
+    put_user(m.from_user.id, p)
+
+    await state.set_state(RegStates.waiting_name)
+    await m.answer("Отправь, пожалуйста, <b>фамилию и имя</b> одной строкой (например: Иванова Анна).",
+                   reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True))
+
+
+@router.message(RegStates.waiting_role)
+async def fallback_role(m: Message, state: FSMContext):
+    await m.answer("Нажми кнопку: <b>Я новичок</b> или <b>Я летник</b>.", reply_markup=kb_role())
+
+
+@router.message(RegStates.waiting_name, F.text.len() >= 3)
+async def take_name(m: Message, state: FSMContext):
+    # примитивная проверка
+    text = " ".join(m.text.strip().split())
+    p = get_user(m.from_user.id)
+    p.name = text
+    put_user(m.from_user.id, p)
+
+    await state.set_state(RegStates.waiting_subject)
+    await m.answer(
+        "Отлично! Теперь выбери предмет:",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Выбрать предмет")]], resize_keyboard=True)
+    )
+    # отдельной кнопкой выводим меню предметов
+    await m.answer("👇 Нажми, чтобы выбрать предмет:", reply_markup=None)
+    await m.answer("Выбор предмета:", reply_markup=kb_subjects())
+
+
+@router.message(RegStates.waiting_name)
+async def fallback_name(m: Message, state: FSMContext):
+    await m.answer("Отправь фамилию и имя одной строкой. Пример: <i>Иванова Анна</i>.")
+
+
+@router.callback_query(F.data.startswith("subject:set:"))
+async def subject_set(cb: CallbackQuery, state: FSMContext):
+    s = cb.data.split(":", 2)[2]
+    p = get_user(cb.from_user.id)
+    p.subject = s
+    put_user(cb.from_user.id, p)
+
+    await cb.answer("Сохранено")
+    if p.role == "newbie":
         await cb.message.answer(
-            "Готово! Ты отмечен как <b>новичок</b>.\n"
-            "Гайды будут приходить по одному каждый день после 08:00 МСК.",
-            reply_markup=kb_main("newbie")
+            f"📘 Предмет: <b>{s.title()}</b> сохранён.\n"
+            f"Кнопки для чтения гайда и сдачи задания активированы.",
+            reply_markup=kb_main_newbie(p)
         )
-    await cb.answer()
-
-@dp.message(F.text & (lambda m: user(m).get("pending_role") == "letnik"))
-async def letnik_code(message: Message):
-    u = user(message)
-    if message.text.strip().lower() == "летл2025":
-        u["role"] = "letnik"
-        u.pop("pending_role", None)
-        save_users(USERS)
-        await message.answer(
-            "Код верный! Ты теперь <b>летник</b>.",
-            reply_markup=kb_main("letnik")
+        # если уже после 08:00 и сегодня ещё не выдавали — выдаём
+        # (но гайд выдаёт планировщик; здесь — полезная подсказка)
+        await cb.message.answer(
+            "Гайды для новичков приходят каждый день <b>после 08:00</b> по МСК.\n"
+            "Если бот был перезапущен позже — гайд придёт сразу после запуска."
         )
     else:
-        await message.answer("❌ Неверный код. Попробуй снова.")
+        await cb.message.answer(
+            f"📘 Предмет: <b>{s.title()}</b> сохранён.",
+            reply_markup=kb_main_letnik(p)
+        )
 
-@dp.callback_query(F.data == "guides:menu")
-async def guides_menu(cb: CallbackQuery):
-    u = user(cb)
-    if not u["subject"]:
-        await cb.message.answer("Сначала выбери предмет:", reply_markup=kb_subjects())
-        await cb.answer()
-        return
-    await cb.message.answer("Каталог гайдов:", reply_markup=kb_guides_list(u["role"]))
-    await cb.answer()
 
-@dp.callback_query(F.data == "progress:me")
-async def my_progress(cb: CallbackQuery):
-    u = user(cb)
-    prog = u.get("progress", {})
-    role = u["role"]
-    items = GUIDES["newbie"] if role == "newbie" else GUIDES["letnik"]
-    lines = []
-    for g in items:
-        st = prog.get(g["id"], {"read": False, "task_done": False})
-        emoji = "✅" if st.get("task_done") else ("📖" if st.get("read") else "⏳")
-        lines.append(f"{emoji} {g['title']}")
-    if not lines:
-        lines = ["пока пусто"]
-    subj = u.get("subject") or "не выбран"
-    await cb.message.answer("📊 Твой прогресс:\n\n" + "\n".join(lines) + f"\n\nПредмет: <b>{subj}</b>")
-    await cb.answer()
-
-@dp.callback_query(F.data == "task:done")
-async def task_done(cb: CallbackQuery):
-    now = datetime.now(TIMEZONE).time()
-    if now >= time(22, 0):
-        await cb.message.answer("❌ Время сдачи заданий прошло. Кнопка недоступна.")
-        await cb.answer()
-        return
-    u = user(cb)
-    role = u["role"]
-    items = GUIDES["newbie"] if role == "newbie" else GUIDES["letnik"]
-    idx = u.get("guide_index", 0)
-    guide = items[idx] if idx < len(items) else None
-    if not guide:
-        await cb.message.answer("Пока нечего отмечать.")
-        await cb.answer()
-        return
-    prog = u.setdefault("progress", {})
-    gstat = prog.setdefault(guide["id"], {"read": True, "task_done": False})
-    gstat["task_done"] = True
-    save_users(USERS)
-    await cb.message.answer(f"✅ Задание по «{guide['title']}» отмечено как выполненное!")
-    await cb.answer()
-
-@dp.callback_query(F.data == "subject:menu")
+@router.callback_query(F.data == "subject:menu")
 async def subject_menu(cb: CallbackQuery):
-    await cb.message.answer("Выбери предмет:", reply_markup=kb_subjects())
+    await cb.message.answer("Выбор предмета:", reply_markup=kb_subjects())
     await cb.answer()
 
-@dp.callback_query(F.data.startswith("subject:set:"))
-async def subject_set(cb: CallbackQuery):
-    s = cb.data.split(":")[2]
-    u = user(cb)
-    u["subject"] = s
-    save_users(USERS)
-    await cb.message.answer(f"📘 Предмет сохранён: <b>{s}</b>")
+
+# =========================
+# ЛЕТНИКИ: код и гайды
+# =========================
+@router.callback_query(F.data == "letnik:code")
+async def ask_letnik_code(cb: CallbackQuery, state: FSMContext):
+    p = get_user(cb.from_user.id)
+    if p.allow_letnik:
+        await cb.answer("Доступ уже открыт")
+        return
+    await state.set_state(RegStates.waiting_letnik_code)
+    await cb.message.answer("Введи код доступа для летников:")
     await cb.answer()
-# -----------------------
+
+
+@router.message(RegStates.waiting_letnik_code)
+async def check_letnik_code(m: Message, state: FSMContext):
+    p = get_user(m.from_user.id)
+    code = (m.text or "").strip()
+    if code == ACCESS_CODE:
+        p.allow_letnik = True
+        put_user(m.from_user.id, p)
+        await state.clear()
+        await m.answer("✅ Код верный. Доступ к гайдам летника открыт.", reply_markup=None)
+        await m.answer("Меню:", reply_markup=kb_main_letnik(p))
+    else:
+        await m.answer("❌ Неверный код. Попробуй ещё раз или нажми /start для перезапуска.")
+
+
+@router.callback_query(F.data == "letnik:all")
+async def letnik_all(cb: CallbackQuery):
+    p = get_user(cb.from_user.id)
+    if not p.allow_letnik:
+        await cb.answer("Нет доступа. Введи код.", show_alert=True)
+        return
+    items = GUIDES["letnik"]
+    text = "⚡ Все гайды для летников:\n\n" + "\n".join([f"• <b>{g['title']}</b> — {g['url']}" for g in items])
+    await cb.message.answer(text)
+    await cb.answer()
+
+
+# =========================
+# НОВИЧКИ: гайд/чтение/задание/сдача
+# =========================
+@router.callback_query(F.data == "newbie:open_guide")
+async def newbie_open_guide(cb: CallbackQuery):
+    p = get_user(cb.from_user.id)
+    if p.role != "newbie":
+        await cb.answer("Доступно только новичкам.", show_alert=True)
+        return
+    if not p.subject:
+        await cb.answer("Сначала выбери предмет.", show_alert=True)
+        return
+
+    # Показываем ссылку на текущий гайд (если уже присылали сегодня)
+    items = GUIDES["newbie"]
+    idx = p.guide_index
+    if idx >= len(items):
+        await cb.message.answer("🎉 Ты уже прошёл(ла) все новичковые гайды!")
+        await cb.answer()
+        return
+
+    g = items[idx]
+    await cb.message.answer(
+        f"📘 Текущий гайд:\n<b>{g['title']}</b>\n{g['url']}\n\n"
+        f"После прочтения нажми кнопку ниже, чтобы открыть задание.",
+        reply_markup=kb_read_confirm()
+    )
+    await cb.answer()
+
+
+@router.callback_query(F.data == "newbie:read_confirm")
+async def newbie_mark_read(cb: CallbackQuery):
+    p = get_user(cb.from_user.id)
+    if p.role != "newbie":
+        await cb.answer("Только для новичков")
+        return
+    p.has_read_today = True
+    put_user(cb.from_user.id, p)
+    await cb.message.answer("Отлично! Гайд помечен как прочитанный. Вот задание:")
+    await send_newbie_task(cb.from_user.id, p)
+    await cb.answer()
+
+
+@router.callback_query(F.data == "newbie:task_done")
+async def newbie_task_done(cb: CallbackQuery):
+    p = get_user(cb.from_user.id)
+    if p.role != "newbie":
+        await cb.answer("Только для новичков")
+        return
+    if not p.subject:
+        await cb.answer("Сначала выбери предмет.", show_alert=True)
+        return
+
+    # дедлайн
+    if not can_submit_now():
+        await cb.answer("После 22:00 сдача недоступна 😔", show_alert=True)
+        return
+
+    # защита: можно сдавать только если подтверждено чтение
+    if not p.has_read_today:
+        await cb.answer("Сначала отметь, что прочитал(а) гайд.", show_alert=True)
+        return
+
+    # помечаем как сданное сегодня
+    tiso = _today_iso_date()
+    if tiso not in p.task_done_dates:
+        p.task_done_dates.append(tiso)
+
+    # продвигаем на следующий гайд к завтрашнему дню
+    p.guide_index += 1
+    p.has_read_today = False
+    put_user(cb.from_user.id, p)
+
+    await cb.message.answer("✅ Задание принято! Новый гайд придёт после 08:00 по МСК.")
+    await cb.answer()
+
+
+# =========================
+# ПРОГРЕСС / АДМИН
+# =========================
+@router.callback_query(F.data == "progress:me")
+async def progress_me(cb: CallbackQuery):
+    p = get_user(cb.from_user.id)
+    role = p.role
+    subject = p.subject or "не выбран"
+    if role == "newbie":
+        total = len(GUIDES["newbie"])
+        done = min(p.guide_index, total)
+        text = (
+            "📊 Твой прогресс:\n\n"
+            f"Роль: новичок\n"
+            f"Предмет: <b>{subject}</b>\n"
+            f"Пройдено гайдов: <b>{done}</b> из <b>{total}</b>\n"
+            f"Сдано дней: <b>{len(p.task_done_dates)}</b>\n"
+        )
+    else:
+        text = (
+            "📊 Твой прогресс:\n\n"
+            f"Роль: летник\n"
+            f"Предмет: <b>{subject}</b>\n"
+            f"Доступ к гайдам летника: {'да' if p.allow_letnik else 'нет'}\n"
+        )
+    await cb.message.answer(text)
+    await cb.answer()
+
+
+@router.message(Command("admin"))
+async def admin_stats(m: Message):
+    if ADMIN_ID and m.from_user.id != ADMIN_ID:
+        return
+    total = len(USERS)
+    newbies = sum(1 for u in USERS.values() if u.get("role") == "newbie")
+    letniki = sum(1 for u in USERS.values() if u.get("role") == "letnik")
+    lines = [
+        f"👥 Всего пользователей: {total}",
+        f"🟢 Новичков: {newbies}",
+        f"🟠 Летников: {letniki}",
+        "",
+        "Последние 10 регистраций:"
+    ]
+    last = sorted(USERS.items(), key=lambda kv: kv[1].get("created_at", ""), reverse=True)[:10]
+    for uid, u in last:
+        lines.append(f"{uid}: {u.get('name') or '—'} | {u.get('role')} | subj:{u.get('subject') or '—'} | idx:{u.get('guide_index', 0)}")
+    await m.answer("\n".join(lines))
+
+
+# =========================
 # ПЛАНИРОВЩИК
-# -----------------------
+# =========================
 async def scheduler_loop():
     """
-    08:00 — выдача новичкам нового гайда.
-    14:00 — напоминание новичкам, что дедлайн в 22:00.
-    21:00 — финальное напоминание новичкам.
-    При рестарте после 8:00 — догоняем выдачу.
+    1) На старте: если сейчас после 08:00 и сегодня ещё не высылали — высылаем новичкам гайд.
+    2) Каждый день в 08:00 — выдаём новичкам следующий гайд (по одному).
+    3) Каждый день в 14:00 — напоминание новичкам, что дедлайн в 22:00.
     """
-    await asyncio.sleep(3)  # небольшая пауза после старта
+    # маленькая пауза после запуска
+    await asyncio.sleep(2)
 
-    now = datetime.now(TIMEZONE)
-    if is_after_8_msk(now):
-        for uid, u in USERS.items():
-            if u.get("role") != "newbie":
+    # Догоним утро, если рестарт после 08:00
+    now = now_msk()
+    if now.time() >= time(8, 0):
+        for uid, raw in list(USERS.items()):
+            p = Progress(**raw)
+            if p.role != "newbie":
                 continue
-            last = u.get("last_guide_sent_at")
+            # если сегодня ещё не отправляли (сравним дату last_guide_sent_at)
             last_date = None
-            if last:
+            if p.last_guide_sent_at:
                 try:
-                    last_date = datetime.fromisoformat(last).astimezone(TIMEZONE).date()
+                    last_date = datetime.fromisoformat(p.last_guide_sent_at).astimezone(TIMEZONE).date()
                 except Exception:
                     last_date = None
-            if last_date != now.date():
+            if last_date != today_msk():
                 try:
-                    await send_newbie_next_guide(int(uid))
+                    await send_newbie_today_guide(int(uid), p)
+                    # небольшая задержка между пользователями
+                    await asyncio.sleep(0.1)
                 except Exception:
                     pass
 
+    # Основной цикл раз в минуту
     while True:
         try:
-            now = datetime.now(TIMEZONE)
-            hh, mm = now.hour, now.minute
+            now = now_msk()
 
-            # 08:00 — новый гайд новичкам
-            if hh == 8 and mm == 0:
-                for uid, u in USERS.items():
-                    if u.get("role") == "newbie":
-                        last = u.get("last_guide_sent_at")
-                        last_date = None
-                        if last:
-                            try:
-                                last_date = datetime.fromisoformat(last).astimezone(TIMEZONE).date()
-                            except Exception:
-                                last_date = None
-                        if last_date != now.date():
-                            await send_newbie_next_guide(int(uid))
+            # 08:00 — выдача новичкам
+            if now.time().hour == 8 and now.time().minute == 0:
+                for uid, raw in list(USERS.items()):
+                    p = Progress(**raw)
+                    if p.role != "newbie":
+                        continue
+                    last_date = None
+                    if p.last_guide_sent_at:
+                        try:
+                            last_date = datetime.fromisoformat(p.last_guide_sent_at).astimezone(TIMEZONE).date()
+                        except Exception:
+                            last_date = None
+                    if last_date == today_msk():
+                        continue
+                    await send_newbie_today_guide(int(uid), p)
+                    await asyncio.sleep(0.1)
 
-            # 14:00 — напоминание про дедлайн
-            if hh == 14 and mm == 0:
-                for uid, u in USERS.items():
-                    if u.get("role") == "newbie":
-                        await bot.send_message(int(uid), "⏰ Напоминание: сдать задание до 22:00 по МСК!")
-
-            # 21:00 — финальное напоминание
-            if hh == 21 and mm == 0:
-                for uid, u in USERS.items():
-                    if u.get("role") == "newbie":
-                        await bot.send_message(int(uid), "⚠️ Последний шанс сдать задание! До 22:00 кнопка будет доступна.")
+            # 14:00 — напоминание новичкам про дедлайн
+            if now.time().hour == REMIND_HOUR and now.time().minute == 0:
+                for uid, raw in list(USERS.items()):
+                    p = Progress(**raw)
+                    if p.role != "newbie":
+                        continue
+                    await bot.send_message(int(uid), f"⏰ Напоминание: сдать сегодняшнее задание до <b>{DEADLINE_HOUR}:00</b> по МСК.")
+                    await asyncio.sleep(0.05)
 
             await asyncio.sleep(60)
-
         except asyncio.CancelledError:
             break
         except Exception:
+            # чтобы цикл не упал навсегда
             await asyncio.sleep(5)
 
-# -----------------------
-# ВЕБ-СЕРВЕР ДЛЯ RENDER
-# -----------------------
+
+# =========================
+# ВЕБ-СЕРВИС ДЛЯ RENDER (ОБХОД)
+# =========================
 async def handle_root(request):
     return web.Response(text="kurator-bot ok")
 
+
 async def handle_health(request):
-    return web.json_response({"status": "ok", "ts": datetime.now(TIMEZONE).isoformat()})
+    return web.json_response({"status": "ok", "ts": iso(now_msk())})
+
 
 async def start_web_app():
     app = web.Application()
-    app.add_routes([
-        web.get("/", handle_root),
-        web.get("/health", handle_health),
-    ])
+    app.add_routes([web.get("/", handle_root), web.get("/health", handle_health)])
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
 
-# -----------------------
+
+# =========================
 # MAIN
-# -----------------------
+# =========================
 async def main():
-    await start_web_app()          # веб-сервер для Render
-    asyncio.create_task(scheduler_loop())  # планировщик
-    await dp.start_polling(bot)    # запуск бота
+    # веб-сервис для Render (чтобы держать порт открыт)
+    await start_web_app()
+
+    # запускаем планировщик
+    asyncio.create_task(scheduler_loop())
+
+    # пулинг
+    await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     try:
