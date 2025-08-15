@@ -291,7 +291,10 @@ async def daily_reminders(bot: Bot):
 
 # ======================= БОТ =======================
 
-bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+from aiogram.client.default import DefaultBotProperties
+
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+
 dp = Dispatcher()
 
 # ---------- /start ----------
@@ -564,3 +567,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
