@@ -415,6 +415,11 @@ async def process_final_test(callback_query: types.CallbackQuery):
     )
     await bot.answer_callback_query(callback_query.id)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+# Берём текущий гайд из списка по роли и номеру
+guide = GUIDES[role][guide_number - 1]
+link = guide["url"]
+
 builder = InlineKeyboardBuilder()
 
 # Кнопка "Читать гайд"
@@ -1097,6 +1102,7 @@ if __name__ == "__main__":
 
 
    
+
 
 
 
