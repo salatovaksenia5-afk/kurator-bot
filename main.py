@@ -816,7 +816,7 @@ async def scheduler_loop():
         except Exception:
             # чтобы цикл не упал навсегда
             await asyncio.sleep(5)
- await cb.message.answer(
+            await cb.message.answer(
         "Готово! Ты отмечен как <b>новичок</b>.\n\n"
         "Напиши, пожалуйста, свою фамилию и имя (например: <i>Иванов Иван</i>)."
     )
@@ -1085,6 +1085,7 @@ if r == "newbie":
     save_users(USERS)
 
    
+
 
 
 
