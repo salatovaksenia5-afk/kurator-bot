@@ -234,6 +234,8 @@ def kb_main_letnik(p: Progress) -> InlineKeyboardMarkup:
         rows.append([InlineKeyboardButton(text="🔒 Ввести код доступа", callback_data="letnik:code")])
     rows.append([InlineKeyboardButton(text="📊 Прогресс", callback_data="progress:me")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
+guide_kb.add(test_button)
 
 
 def kb_subjects() -> InlineKeyboardMarkup:
@@ -543,6 +545,9 @@ async def newbie_task_done(cb: CallbackQuery):
 
     await cb.message.answer("✅ Задание принято! Новый гайд придёт после 08:00 по МСК.")
     await cb.answer()
+   if guide_number == 3:  # замени LAST_GUIDE на число (например, 3)
+    final_test_button = InlineKeyboardButton("Финальный тест", callback_data="final_test")
+    guide_kb.add(final_test_button)
 
 
 # =========================
@@ -763,7 +768,28 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-       
+# === ОБРАБОТЧИКИ ТЕСТОВ ===
+
+@dp.callback_query_handler(lambda c: c.data.startswith("test_"))
+async def process_test(callback_query: types.CallbackQuery):
+    subject = callback_query.data.split("_", 1)[1]
+    
+    await callback_query.message.answer(
+        f"📘 Тест по предмету {subject}.\n"
+        f"Скоро здесь будут вопросы!"
+    )
+    await bot.answer_callback_query(callback_query.id)
+
+
+@dp.callback_query_handler(lambda c: c.data == "final_test")
+async def process_final_test(callback_query: types.CallbackQuery):
+    await callback_query.message.answer(
+        "🎓 Финальный тест!\n"
+        "Здесь будут заключительные вопросы для проверки знаний."
+    )
+    await bot.answer_callback_query(callback_query.id)
+
+
 
 
 
