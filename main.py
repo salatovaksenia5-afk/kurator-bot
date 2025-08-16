@@ -1,6 +1,8 @@
 import os
 import json
 import asyncio
+import json
+import os
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, time, timezone
 
@@ -55,8 +57,11 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS", "").strip()
 # === HR/онбординг ===
 CHAT_LINK_NEWBIE = os.getenv("CHAT_LINK_NEWBIE", "").strip()
 
-
-
+def _read_json(path, default=None):
+    if not os.path.exists(path):
+        return default
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 def _write_json(path: str, payload):
     tmp = path + ".tmp"
@@ -1085,6 +1090,7 @@ if __name__ == "__main__":
 
 
    
+
 
 
 
