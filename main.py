@@ -1,4 +1,3 @@
-# main.py
 import os
 import json
 import asyncio
@@ -7,7 +6,7 @@ from datetime import datetime, timedelta, time, timezone
 
 from aiohttp import web
 
-from aiogram import Bot, Dispatcher, F, Router
+from aiogram import Bot, Dispatcher, F, Router, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
@@ -49,132 +48,133 @@ GUIDES_FILE = os.path.join(DATA_DIR, "guides.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # === Google Sheets настройки ===
-SHEET_ID = os.getenv("SHEET_ID", "17zqwZ0MNNJWjzVfmBluLXyRGt-ogC14QxtXhTfEPsNU/edit?hl=ru&gid=0#gid=0").strip()           # ID таблицы
-SHEET_TAB = os.getenv("SHEET_TAB", "Лист1").strip()    # имя листа
+SHEET_ID = os.getenv("SHEET_ID", "17zqwZ0MNNJWjzVfmBluLXyRGt-ogC14QxtXhTfEPsNU/edit?hl=ru&gid=0#gid=0").strip()
+SHEET_TAB = os.getenv("SHEET_TAB", "Лист1").strip()
 GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS", "").strip()
 
 # === HR/онбординг ===
-CHAT_LINK_NEWBIE = os.getenv("CHAT_LINK_NEWBIE", "").strip()  # ссылка на чат новичков
+CHAT_LINK_NEWBIE = os.getenv("CHAT_LINK_NEWBIE", "").strip()
 
-def load_users():
-    data = _read_json(USERS_FILE, {})
-    for uid, u in data.items():
-        u.setdefault("role", "newbie")
-        u.setdefault("subject", None)
-        u.setdefault("guide_index", 0)
-        u.setdefault("last_guide_sent_at", None)
-        u.setdefault("progress", {})
-        u.setdefault("created_at", datetime.now(TIMEZONE).isoformat())
+# ... остальной код без изменений ...
 
-        # новые поля
-        u.setdefault("full_name", None)               # ФИ
-        u.setdefault("awaiting_full_name", False)     # ждём ввод ФИ
-        u.setdefault("hr_chat_link_sent", False)      # дали ссылку в чат новичков
-        u.setdefault("final_test_done", False)        # финальный тест
-        u.setdefault("finished_at", None)             # дата окончания обучения
-    return data
-# ==========================
-# Google Sheets helpers
-# ==========================
-_GS_CLIENT = None
+@dp.message(F.text)
+async def capture_full_name(message: Message):
+    u = get_user(message.from_user.id)
+    if not u or not getattr(u, "awaiting_full_name", False):
+        return
+    full = message.text.strip()
+    if len(full.split()) < 2:
+        await message.answer("Нужно указать фамилию и имя. Пример: <i>Иванов Иван</i>")
+        return
+    u.full_name = full
+    u.awaiting_full_name = False
+    put_user(message.from_user.id, u)
 
-def _gs_client():
-    global _GS_CLIENT
-    if _GS_CLIENT:
-        return _GS_CLIENT
-    if not (GOOGLE_CREDENTIALS and SHEET_ID):
-        return None
     try:
-        creds_info = json.loads(GOOGLE_CREDENTIALS)
-        creds = Credentials.from_service_account_info(
-            creds_info,
-            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        gs_set(message.from_user.id, {"ФИ": full})
+    except Exception:
+        pass
+
+    await message.answer("Отлично! Теперь выбери предмет:", reply_markup=kb_subjects())
+
+@dp.callback_query(F.data.startswith("subject:set:"))
+async def subject_set(cb: CallbackQuery):
+    s = cb.data.split(":")[2]
+    u = get_user(cb.from_user.id)
+    u.subject = s
+    put_user(cb.from_user.id, u)
+
+    try:
+        gs_set(cb.from_user.id, {"Предмет": s})
+    except Exception:
+        pass
+
+    await cb.message.answer(f"📘 Предмет сохранён: <b>{s}</b>")
+
+    if u.role == "newbie" and CHAT_LINK_NEWBIE and not getattr(u, "hr_chat_link_sent", False):
+        u.hr_chat_link_sent = True
+        put_user(cb.from_user.id, u)
+        try:
+            gs_set(cb.from_user.id, {"В чате новичков": "ссылка отправлена"})
+        except Exception:
+            pass
+        await cb.message.answer(
+            f"👋 Добро пожаловать! Вступи в чат новичков по ссылке:\n{CHAT_LINK_NEWBIE}\n\n"
+            f"После вступления тебе начнут приходить гайды (после 08:00 МСК)."
         )
-        _GS_CLIENT = gspread.authorize(creds)
-        return _GS_CLIENT
-    except Exception:
-        return None
 
-def _gs_ws():
-    client = _gs_client()
-    if not client:
-        return None
-    try:
-        sh = client.open_by_key(SHEET_ID)
-        return sh.worksheet(SHEET_TAB)
-    except Exception:
-        return None
+    await cb.answer()
 
-def gs_set(uid: int, mapping: dict):
-    """
-    Обновляет/создаёт строку пользователя по Telegram ID.
-    Ожидается, что в первой строке таблицы — заголовки (в том числе столбец 'Telegram ID').
-    mapping: { "ФИ": "...", "Роль": "newbie", ... }
-    """
-    ws = _gs_ws()
-    if not ws:
-        return
-    headers = ws.row_values(1)
-    if not headers:
-        # Если таблица пустая — создадим строку заголовков из ключей мэппинга + 'Telegram ID'
-        base = ["Telegram ID"] + [h for h in mapping.keys() if h != "Telegram ID"]
-        ws.append_row(base)
-        headers = base
+@dp.callback_query(F.data == "task:done")
+async def task_done(cb: CallbackQuery):
+    u = get_user(cb.from_user.id)
+    role = u.role
+    items = GUIDES["newbie"] if role == "newbie" else GUIDES["letnik"]
 
-    # найдём строку по Telegram ID
-    try:
-        id_col = headers.index("Telegram ID") + 1
-    except ValueError:
-        # если в таблице нет колонки — добавим заголовок
-        headers.append("Telegram ID")
-        ws.update("A1", [headers])  # перезапишем строку заголовков
-        id_col = headers.index("Telegram ID") + 1
-
-    # пробуем найти ячейку с uid
-    cell = None
-    try:
-        cell = ws.find(str(uid))
-    except gspread.exceptions.CellNotFound:
-        cell = None
-
-    if cell:
-        row_idx = cell.row
+    idx = u.guide_index
+    guide = None
+    if role == "newbie":
+        if idx < len(items):
+            guide = items[idx]
     else:
-        # добавим новую строку
-        new_row = [""] * len(headers)
-        new_row[id_col - 1] = str(uid)
-        # проставим значения из mapping
-        for k, v in mapping.items():
-            if k in headers:
-                new_row[headers.index(k)] = v
-            else:
-                # если ключа нет в заголовках — расширим заголовки и потом обновим
-                headers.append(k)
-                ws.update("A1", [headers])
-                # обновим копию new_row до новой длины
-                new_row += [""] * (len(headers) - len(new_row))
-                new_row[headers.index(k)] = v
-        ws.append_row(new_row)
+        guide = items[0] if items else None
+
+    if not guide:
+        await cb.message.answer("Пока нечего отмечать.")
+        await cb.answer()
         return
 
-    # обновим существующую строку
-    for k, v in mapping.items():
-        if k not in headers:
-            headers.append(k)
-            ws.update("A1", [headers])
-        ws.update_cell(row_idx, headers.index(k) + 1, v)
+    prog = u.__dict__.setdefault("progress", {})
+    gstat = prog.setdefault(guide["id"], {"read": True, "task_done": False})
+    gstat["read"] = True
+    gstat["task_done"] = True
+    put_user(cb.from_user.id, u)
 
-# =========================
-# ДАННЫЕ / ПАМЯТЬ
-# =========================
-def _read_json(path: str, default):
+    await cb.message.answer(f"✅ Задание по «{guide['title']}» отмечено как выполненное!")
+
+    if role == "newbie":
+        guide_num = u.guide_index + 1
+        try:
+            gs_set(cb.from_user.id, {f"Задание {guide_num}": "выполнено"})
+        except Exception:
+            pass
+    else:
+        try:
+            gs_set(cb.from_user.id, {"Статус": "Тест у летника выполняется"})
+        except Exception:
+            pass
+
+    await cb.answer()
+
+@dp.callback_query(F.data == "final_test")
+async def process_final_test(cb: CallbackQuery):
+    u = get_user(cb.from_user.id)
+    uid = cb.from_user.id
+    role = u.role
+
+    if role != "newbie":
+        await cb.answer("Финальный тест — для новичков.", show_alert=True)
+        return
+
+    u.final_test_done = True
+    u.finished_at = datetime.now(TIMEZONE).isoformat()
+    put_user(uid, u)
+
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return default
+        gs_set(uid, {
+            "Финальный тест": "✓",
+            "Дата окончания": datetime.now(TIMEZONE).strftime("%Y-%m-%d"),
+            "Статус": "Завершил обучение"
+        })
     except Exception:
-        return default
+        pass
+
+    await cb.message.answer(
+        "🎓 <b>Поздравляем!</b>\n"
+        "Ты прошёл обучение куратора. Добро пожаловать в команду! 🥳\n\n"
+        "Свяжись со старшим куратором для следующих шагов."
+    )
+    await cb.answer()
 
 
 def _write_json(path: str, payload):
@@ -1085,6 +1085,7 @@ if r == "newbie":
     save_users(USERS)
 
    
+
 
 
 
