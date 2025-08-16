@@ -55,7 +55,6 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS", "").strip()
 # === HR/онбординг ===
 CHAT_LINK_NEWBIE = os.getenv("CHAT_LINK_NEWBIE", "").strip()
 
-# ... остальной код без изменений ...
 
 @dp.message(F.text)
 async def capture_full_name(message: Message):
@@ -389,7 +388,43 @@ bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTM
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
+# === ОБРАБОТЧИКИ ТЕСТОВ ===
 
+@dp.callback_query_handler(lambda c: c.data.startswith("test_"))
+async def process_test(callback_query: types.CallbackQuery):
+    subject = callback_query.data.split("_", 1)[1]
+    
+    await callback_query.message.answer(
+        f"📘 Тест по предмету {subject}.\n"
+        f"Скоро здесь будут вопросы!"
+    )
+    await bot.answer_callback_query(callback_query.id)
+
+
+@dp.callback_query_handler(lambda c: c.data == "final_test")
+async def process_final_test(callback_query: types.CallbackQuery):
+    await callback_query.message.answer(
+        "🎓 Финальный тест!\n"
+        "Здесь будут заключительные вопросы для проверки знаний."
+    )
+    await bot.answer_callback_query(callback_query.id)
+guide_kb = InlineKeyboardMarkup()
+
+guide_button = InlineKeyboardButton("Читать гайд", url=link)
+guide_kb.add(guide_button)
+
+# Кнопка теста для летников
+if role == "letnik":
+    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
+    guide_kb.add(test_button)
+
+# Кнопка финального теста для новичков (если это последний гайд)
+if role == "newbie" and guide_number == 3:  # замени 3 на число последнего гайда
+    final_test_button = InlineKeyboardButton("Финальный тест", callback_data="final_test")
+    guide_kb.add(final_test_button)
+if r == "newbie":
+    u["awaiting_full_name"] = True
+    save_users(USERS)
 
 # =========================
 # ХЕЛПЕРЫ ДЛЯ СЦЕНАРИЕВ
@@ -1046,45 +1081,10 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-# === ОБРАБОТЧИКИ ТЕСТОВ ===
 
-@dp.callback_query_handler(lambda c: c.data.startswith("test_"))
-async def process_test(callback_query: types.CallbackQuery):
-    subject = callback_query.data.split("_", 1)[1]
-    
-    await callback_query.message.answer(
-        f"📘 Тест по предмету {subject}.\n"
-        f"Скоро здесь будут вопросы!"
-    )
-    await bot.answer_callback_query(callback_query.id)
-
-
-@dp.callback_query_handler(lambda c: c.data == "final_test")
-async def process_final_test(callback_query: types.CallbackQuery):
-    await callback_query.message.answer(
-        "🎓 Финальный тест!\n"
-        "Здесь будут заключительные вопросы для проверки знаний."
-    )
-    await bot.answer_callback_query(callback_query.id)
-guide_kb = InlineKeyboardMarkup()
-
-guide_button = InlineKeyboardButton("Читать гайд", url=link)
-guide_kb.add(guide_button)
-
-# Кнопка теста для летников
-if role == "letnik":
-    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
-    guide_kb.add(test_button)
-
-# Кнопка финального теста для новичков (если это последний гайд)
-if role == "newbie" and guide_number == 3:  # замени 3 на число последнего гайда
-    final_test_button = InlineKeyboardButton("Финальный тест", callback_data="final_test")
-    guide_kb.add(final_test_button)
-if r == "newbie":
-    u["awaiting_full_name"] = True
-    save_users(USERS)
 
    
+
 
 
 
