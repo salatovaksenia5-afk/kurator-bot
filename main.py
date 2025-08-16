@@ -396,7 +396,7 @@ async def process_final_test(cb: CallbackQuery):
     )
     await cb.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("test_"))
+@router.callback_query(lambda c: c.data.startswith("test_"))
 async def process_test(callback_query: types.CallbackQuery):
     subject = callback_query.data.split("_", 1)[1]
     
@@ -407,7 +407,7 @@ async def process_test(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
 
 
-@dp.callback_query_handler(lambda c: c.data == "final_test")
+@router.callback_query(lambda c: c.data == "final_test")
 async def process_final_test(callback_query: types.CallbackQuery):
     await callback_query.message.answer(
         "🎓 Финальный тест!\n"
@@ -1089,7 +1089,9 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 
+
    
+
 
 
 
