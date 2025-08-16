@@ -414,15 +414,21 @@ async def process_final_test(callback_query: types.CallbackQuery):
         "Здесь будут заключительные вопросы для проверки знаний."
     )
     await bot.answer_callback_query(callback_query.id)
-guide_kb = InlineKeyboardMarkup()
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+builder = InlineKeyboardBuilder()
 
-guide_button = InlineKeyboardButton("Читать гайд", url=link)
-guide_kb.add(guide_button)
+# Кнопка "Читать гайд"
+builder.button(text="Читать гайд", url=link)
 
 # Кнопка теста для летников
 if role == "letnik":
-    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
-    guide_kb.add(test_button)
+    builder.button(text="Пройти тест", callback_data=f"test_{subject}")
+
+# Кнопка финального теста для новичков (если это последний гайд)
+if role == "newbie" and guide_number == 3:  # замени 3 на число последнего гайда
+    builder.button(text="Финальный тест", callback_data="final_test")
+
+guide_kb = builder.as_markup()
 
 # Кнопка финального теста для новичков (если это последний гайд)
 if role == "newbie" and guide_number == 3:  # замени 3 на число последнего гайда
@@ -1091,6 +1097,7 @@ if __name__ == "__main__":
 
 
    
+
 
 
 
