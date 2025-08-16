@@ -56,124 +56,6 @@ GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS", "").strip()
 CHAT_LINK_NEWBIE = os.getenv("CHAT_LINK_NEWBIE", "").strip()
 
 
-@dp.message(F.text)
-async def capture_full_name(message: Message):
-    u = get_user(message.from_user.id)
-    if not u or not getattr(u, "awaiting_full_name", False):
-        return
-    full = message.text.strip()
-    if len(full.split()) < 2:
-        await message.answer("Нужно указать фамилию и имя. Пример: <i>Иванов Иван</i>")
-        return
-    u.full_name = full
-    u.awaiting_full_name = False
-    put_user(message.from_user.id, u)
-
-    try:
-        gs_set(message.from_user.id, {"ФИ": full})
-    except Exception:
-        pass
-
-    await message.answer("Отлично! Теперь выбери предмет:", reply_markup=kb_subjects())
-
-@dp.callback_query(F.data.startswith("subject:set:"))
-async def subject_set(cb: CallbackQuery):
-    s = cb.data.split(":")[2]
-    u = get_user(cb.from_user.id)
-    u.subject = s
-    put_user(cb.from_user.id, u)
-
-    try:
-        gs_set(cb.from_user.id, {"Предмет": s})
-    except Exception:
-        pass
-
-    await cb.message.answer(f"📘 Предмет сохранён: <b>{s}</b>")
-
-    if u.role == "newbie" and CHAT_LINK_NEWBIE and not getattr(u, "hr_chat_link_sent", False):
-        u.hr_chat_link_sent = True
-        put_user(cb.from_user.id, u)
-        try:
-            gs_set(cb.from_user.id, {"В чате новичков": "ссылка отправлена"})
-        except Exception:
-            pass
-        await cb.message.answer(
-            f"👋 Добро пожаловать! Вступи в чат новичков по ссылке:\n{CHAT_LINK_NEWBIE}\n\n"
-            f"После вступления тебе начнут приходить гайды (после 08:00 МСК)."
-        )
-
-    await cb.answer()
-
-@dp.callback_query(F.data == "task:done")
-async def task_done(cb: CallbackQuery):
-    u = get_user(cb.from_user.id)
-    role = u.role
-    items = GUIDES["newbie"] if role == "newbie" else GUIDES["letnik"]
-
-    idx = u.guide_index
-    guide = None
-    if role == "newbie":
-        if idx < len(items):
-            guide = items[idx]
-    else:
-        guide = items[0] if items else None
-
-    if not guide:
-        await cb.message.answer("Пока нечего отмечать.")
-        await cb.answer()
-        return
-
-    prog = u.__dict__.setdefault("progress", {})
-    gstat = prog.setdefault(guide["id"], {"read": True, "task_done": False})
-    gstat["read"] = True
-    gstat["task_done"] = True
-    put_user(cb.from_user.id, u)
-
-    await cb.message.answer(f"✅ Задание по «{guide['title']}» отмечено как выполненное!")
-
-    if role == "newbie":
-        guide_num = u.guide_index + 1
-        try:
-            gs_set(cb.from_user.id, {f"Задание {guide_num}": "выполнено"})
-        except Exception:
-            pass
-    else:
-        try:
-            gs_set(cb.from_user.id, {"Статус": "Тест у летника выполняется"})
-        except Exception:
-            pass
-
-    await cb.answer()
-
-@dp.callback_query(F.data == "final_test")
-async def process_final_test(cb: CallbackQuery):
-    u = get_user(cb.from_user.id)
-    uid = cb.from_user.id
-    role = u.role
-
-    if role != "newbie":
-        await cb.answer("Финальный тест — для новичков.", show_alert=True)
-        return
-
-    u.final_test_done = True
-    u.finished_at = datetime.now(TIMEZONE).isoformat()
-    put_user(uid, u)
-
-    try:
-        gs_set(uid, {
-            "Финальный тест": "✓",
-            "Дата окончания": datetime.now(TIMEZONE).strftime("%Y-%m-%d"),
-            "Статус": "Завершил обучение"
-        })
-    except Exception:
-        pass
-
-    await cb.message.answer(
-        "🎓 <b>Поздравляем!</b>\n"
-        "Ты прошёл обучение куратора. Добро пожаловать в команду! 🥳\n\n"
-        "Свяжись со старшим куратором для следующих шагов."
-    )
-    await cb.answer()
 
 
 def _write_json(path: str, payload):
@@ -389,6 +271,125 @@ dp = Dispatcher()
 router = Router()
 dp.include_router(router)
 # === ОБРАБОТЧИКИ ТЕСТОВ ===
+
+@dp.message(F.text)
+async def capture_full_name(message: Message):
+    u = get_user(message.from_user.id)
+    if not u or not getattr(u, "awaiting_full_name", False):
+        return
+    full = message.text.strip()
+    if len(full.split()) < 2:
+        await message.answer("Нужно указать фамилию и имя. Пример: <i>Иванов Иван</i>")
+        return
+    u.full_name = full
+    u.awaiting_full_name = False
+    put_user(message.from_user.id, u)
+
+    try:
+        gs_set(message.from_user.id, {"ФИ": full})
+    except Exception:
+        pass
+
+    await message.answer("Отлично! Теперь выбери предмет:", reply_markup=kb_subjects())
+
+@dp.callback_query(F.data.startswith("subject:set:"))
+async def subject_set(cb: CallbackQuery):
+    s = cb.data.split(":")[2]
+    u = get_user(cb.from_user.id)
+    u.subject = s
+    put_user(cb.from_user.id, u)
+
+    try:
+        gs_set(cb.from_user.id, {"Предмет": s})
+    except Exception:
+        pass
+
+    await cb.message.answer(f"📘 Предмет сохранён: <b>{s}</b>")
+
+    if u.role == "newbie" and CHAT_LINK_NEWBIE and not getattr(u, "hr_chat_link_sent", False):
+        u.hr_chat_link_sent = True
+        put_user(cb.from_user.id, u)
+        try:
+            gs_set(cb.from_user.id, {"В чате новичков": "ссылка отправлена"})
+        except Exception:
+            pass
+        await cb.message.answer(
+            f"👋 Добро пожаловать! Вступи в чат новичков по ссылке:\n{CHAT_LINK_NEWBIE}\n\n"
+            f"После вступления тебе начнут приходить гайды (после 08:00 МСК)."
+        )
+
+    await cb.answer()
+
+@dp.callback_query(F.data == "task:done")
+async def task_done(cb: CallbackQuery):
+    u = get_user(cb.from_user.id)
+    role = u.role
+    items = GUIDES["newbie"] if role == "newbie" else GUIDES["letnik"]
+
+    idx = u.guide_index
+    guide = None
+    if role == "newbie":
+        if idx < len(items):
+            guide = items[idx]
+    else:
+        guide = items[0] if items else None
+
+    if not guide:
+        await cb.message.answer("Пока нечего отмечать.")
+        await cb.answer()
+        return
+
+    prog = u.__dict__.setdefault("progress", {})
+    gstat = prog.setdefault(guide["id"], {"read": True, "task_done": False})
+    gstat["read"] = True
+    gstat["task_done"] = True
+    put_user(cb.from_user.id, u)
+
+    await cb.message.answer(f"✅ Задание по «{guide['title']}» отмечено как выполненное!")
+
+    if role == "newbie":
+        guide_num = u.guide_index + 1
+        try:
+            gs_set(cb.from_user.id, {f"Задание {guide_num}": "выполнено"})
+        except Exception:
+            pass
+    else:
+        try:
+            gs_set(cb.from_user.id, {"Статус": "Тест у летника выполняется"})
+        except Exception:
+            pass
+
+    await cb.answer()
+
+@dp.callback_query(F.data == "final_test")
+async def process_final_test(cb: CallbackQuery):
+    u = get_user(cb.from_user.id)
+    uid = cb.from_user.id
+    role = u.role
+
+    if role != "newbie":
+        await cb.answer("Финальный тест — для новичков.", show_alert=True)
+        return
+
+    u.final_test_done = True
+    u.finished_at = datetime.now(TIMEZONE).isoformat()
+    put_user(uid, u)
+
+    try:
+        gs_set(uid, {
+            "Финальный тест": "✓",
+            "Дата окончания": datetime.now(TIMEZONE).strftime("%Y-%m-%d"),
+            "Статус": "Завершил обучение"
+        })
+    except Exception:
+        pass
+
+    await cb.message.answer(
+        "🎓 <b>Поздравляем!</b>\n"
+        "Ты прошёл обучение куратора. Добро пожаловать в команду! 🥳\n\n"
+        "Свяжись со старшим куратором для следующих шагов."
+    )
+    await cb.answer()
 
 @dp.callback_query_handler(lambda c: c.data.startswith("test_"))
 async def process_test(callback_query: types.CallbackQuery):
@@ -1084,6 +1085,7 @@ if __name__ == "__main__":
 
 
    
+
 
 
 
