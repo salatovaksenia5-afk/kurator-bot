@@ -545,7 +545,8 @@ async def newbie_task_done(cb: CallbackQuery):
 
     await cb.message.answer("✅ Задание принято! Новый гайд придёт после 08:00 по МСК.")
     await cb.answer()
-   if guide_number == 3:  # замени LAST_GUIDE на число (например, 3)
+# Если это последний гайд — добавляем финальный тест
+if guide_number == 3:  # тут 3 — это последний гайд, поменяешь на своё число
     final_test_button = InlineKeyboardButton("Финальный тест", callback_data="final_test")
     guide_kb.add(final_test_button)
 
@@ -788,6 +789,7 @@ async def process_final_test(callback_query: types.CallbackQuery):
         "Здесь будут заключительные вопросы для проверки знаний."
     )
     await bot.answer_callback_query(callback_query.id)
+
 
 
 
