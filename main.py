@@ -738,5 +738,32 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+ from aiohttp import web
+import asyncio
+
+async def health(request):
+    return web.Response(text="OK")
+
+async def start_web_app():
+    app = web.Application()
+    app.router.add_get("/health", health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    await site.start()
+
+# Запуск и бота, и health-сервера
+async def main():
+    # Запускаем бота
+    bot_task = asyncio.create_task(dp.start_polling(bot))
+    # Запускаем сервер для аптайма
+    web_task = asyncio.create_task(start_web_app())
+    # Ждём оба таска
+    await asyncio.gather(bot_task, web_task)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+       
+
 
 
