@@ -816,111 +816,7 @@ async def scheduler_loop():
         except Exception:
             # чтобы цикл не упал навсегда
             await asyncio.sleep(5)
-
-
-# =========================
-# ВЕБ-СЕРВИС ДЛЯ RENDER (ОБХОД)
-# =========================
-async def handle_root(request):
-    return web.Response(text="kurator-bot ok")
-
-
-async def handle_health(request):
-    return web.json_response({"status": "ok", "ts": iso(now_msk())})
-
-
-async def start_web_app():
-    app = web.Application()
-    app.add_routes([web.get("/", handle_root), web.get("/health", handle_health)])
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", PORT)
-    await site.start()
-
-
-# =========================
-# MAIN
-# =========================
-async def main():
-    # веб-сервис для Render (чтобы держать порт открыт)
-    await start_web_app()
-
-    # запускаем планировщик
-    asyncio.create_task(scheduler_loop())
-
-    # пулинг
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
-from aiohttp import web
-import asyncio
-
-async def health(request):
-    return web.Response(text="OK")
-
-async def start_web_app():
-    app = web.Application()
-    app.router.add_get("/health", health)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8080)
-    await site.start()
-
-# Запуск и бота, и health-сервера
-async def main():
-    # Запускаем бота
-    bot_task = asyncio.create_task(dp.start_polling(bot))
-    # Запускаем сервер для аптайма
-    web_task = asyncio.create_task(start_web_app())
-    # Ждём оба таска
-    await asyncio.gather(bot_task, web_task)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-# === ОБРАБОТЧИКИ ТЕСТОВ ===
-
-@dp.callback_query_handler(lambda c: c.data.startswith("test_"))
-async def process_test(callback_query: types.CallbackQuery):
-    subject = callback_query.data.split("_", 1)[1]
-    
-    await callback_query.message.answer(
-        f"📘 Тест по предмету {subject}.\n"
-        f"Скоро здесь будут вопросы!"
-    )
-    await bot.answer_callback_query(callback_query.id)
-
-
-@dp.callback_query_handler(lambda c: c.data == "final_test")
-async def process_final_test(callback_query: types.CallbackQuery):
-    await callback_query.message.answer(
-        "🎓 Финальный тест!\n"
-        "Здесь будут заключительные вопросы для проверки знаний."
-    )
-    await bot.answer_callback_query(callback_query.id)
-guide_kb = InlineKeyboardMarkup()
-
-guide_button = InlineKeyboardButton("Читать гайд", url=link)
-guide_kb.add(guide_button)
-
-# Кнопка теста для летников
-if role == "letnik":
-    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
-    guide_kb.add(test_button)
-
-# Кнопка финального теста для новичков (если это последний гайд)
-if role == "newbie" and guide_number == 3:  # замени 3 на число последнего гайда
-    final_test_button = InlineKeyboardButton("Финальный тест", callback_data="final_test")
-    guide_kb.add(final_test_button)
-if r == "newbie":
-    u["awaiting_full_name"] = True
-    save_users(USERS)
-
-    await cb.message.answer(
+ await cb.message.answer(
         "Готово! Ты отмечен как <b>новичок</b>.\n\n"
         "Напиши, пожалуйста, свою фамилию и имя (например: <i>Иванов Иван</i>)."
     )
@@ -1084,6 +980,111 @@ async def process_final_test(cb: CallbackQuery):
     )
     await cb.answer()
 
+
+
+# =========================
+# ВЕБ-СЕРВИС ДЛЯ RENDER (ОБХОД)
+# =========================
+async def handle_root(request):
+    return web.Response(text="kurator-bot ok")
+
+
+async def handle_health(request):
+    return web.json_response({"status": "ok", "ts": iso(now_msk())})
+
+
+async def start_web_app():
+    app = web.Application()
+    app.add_routes([web.get("/", handle_root), web.get("/health", handle_health)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+
+
+# =========================
+# MAIN
+# =========================
+async def main():
+    # веб-сервис для Render (чтобы держать порт открыт)
+    await start_web_app()
+
+    # запускаем планировщик
+    asyncio.create_task(scheduler_loop())
+
+    # пулинг
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+from aiohttp import web
+import asyncio
+
+async def health(request):
+    return web.Response(text="OK")
+
+async def start_web_app():
+    app = web.Application()
+    app.router.add_get("/health", health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    await site.start()
+
+# Запуск и бота, и health-сервера
+async def main():
+    # Запускаем бота
+    bot_task = asyncio.create_task(dp.start_polling(bot))
+    # Запускаем сервер для аптайма
+    web_task = asyncio.create_task(start_web_app())
+    # Ждём оба таска
+    await asyncio.gather(bot_task, web_task)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+# === ОБРАБОТЧИКИ ТЕСТОВ ===
+
+@dp.callback_query_handler(lambda c: c.data.startswith("test_"))
+async def process_test(callback_query: types.CallbackQuery):
+    subject = callback_query.data.split("_", 1)[1]
+    
+    await callback_query.message.answer(
+        f"📘 Тест по предмету {subject}.\n"
+        f"Скоро здесь будут вопросы!"
+    )
+    await bot.answer_callback_query(callback_query.id)
+
+
+@dp.callback_query_handler(lambda c: c.data == "final_test")
+async def process_final_test(callback_query: types.CallbackQuery):
+    await callback_query.message.answer(
+        "🎓 Финальный тест!\n"
+        "Здесь будут заключительные вопросы для проверки знаний."
+    )
+    await bot.answer_callback_query(callback_query.id)
+guide_kb = InlineKeyboardMarkup()
+
+guide_button = InlineKeyboardButton("Читать гайд", url=link)
+guide_kb.add(guide_button)
+
+# Кнопка теста для летников
+if role == "letnik":
+    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
+    guide_kb.add(test_button)
+
+# Кнопка финального теста для новичков (если это последний гайд)
+if role == "newbie" and guide_number == 3:  # замени 3 на число последнего гайда
+    final_test_button = InlineKeyboardButton("Финальный тест", callback_data="final_test")
+    guide_kb.add(final_test_button)
+if r == "newbie":
+    u["awaiting_full_name"] = True
+    save_users(USERS)
+
+   
 
 
 
