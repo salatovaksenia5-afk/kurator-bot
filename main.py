@@ -234,8 +234,6 @@ def kb_main_letnik(p: Progress) -> InlineKeyboardMarkup:
         rows.append([InlineKeyboardButton(text="🔒 Ввести код доступа", callback_data="letnik:code")])
     rows.append([InlineKeyboardButton(text="📊 Прогресс", callback_data="progress:me")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
-    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
-guide_kb.add(test_button)
 
 
 def kb_subjects() -> InlineKeyboardMarkup:
@@ -785,6 +783,21 @@ async def process_final_test(callback_query: types.CallbackQuery):
         "Здесь будут заключительные вопросы для проверки знаний."
     )
     await bot.answer_callback_query(callback_query.id)
+guide_kb = InlineKeyboardMarkup()
+
+guide_button = InlineKeyboardButton("Читать гайд", url=link)
+guide_kb.add(guide_button)
+
+# Кнопка теста для летников
+if role == "letnik":
+    test_button = InlineKeyboardButton("Пройти тест", callback_data=f"test_{subject}")
+    guide_kb.add(test_button)
+
+# Кнопка финального теста для новичков (если это последний гайд)
+if role == "newbie" and guide_number == 3:  # замени 3 на число последнего гайда
+    final_test_button = InlineKeyboardButton("Финальный тест", callback_data="final_test")
+    guide_kb.add(final_test_button)
+
 
 
 
