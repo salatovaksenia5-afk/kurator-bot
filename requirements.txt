@@ -1,4 +1,7 @@
 aiogram
 aiohttp
 pytz
+gspread
+oauth2client
+
 
