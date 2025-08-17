@@ -206,7 +206,7 @@ def can_submit_now():
 
 def _today_iso_date():
     return now_msk().date().isoformat()
-    def _third_guide_task_for_subject(subject: str) -> str:
+def _third_guide_task_for_subject(subject: str) -> str:
     return GUIDES["tasks_third_by_subject"].get(subject or "", "Индивидуальное задание для 3-го гайда")
 
 async def send_newbie_task(uid: int, p: Progress):
@@ -323,6 +323,7 @@ if __name__=="__main__":
 
 
     
+
 
 
 
