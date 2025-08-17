@@ -80,7 +80,7 @@ def gs_log_event(tg_id, last_name, first_name, role, subject, start_date,
                  guide3_done=False, guide3_read=False,
                  final_test=False):
         if WS_LOG is None:
-        return
+           return
     WS_LOG.append_row([
         tg_id, last_name, first_name, role, subject, start_date,
         "Да" if guide1_done else "Нет",
@@ -787,6 +787,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
 
 
