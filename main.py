@@ -11,6 +11,11 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 )
+MSK = timezone(timedelta(hours=3))  # Московское время UTC+3
+
+def _now_msk():
+    return datetime.now(MSK)
+
 
 # ============== НАСТРОЙКИ / КОНСТАНТЫ ==============
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
@@ -775,6 +780,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
