@@ -2,7 +2,7 @@ import os
 import asyncio
 import json
 from datetime import datetime, timedelta, time, timezone
-
+from gsheets import WS_SUMMARY, gs_log_event
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
@@ -81,6 +81,7 @@ def _gs_connect():
         return None, None
 
 WS_SUMMARY, WS_LOG = _gs_connect()
+gs_log_event(12345, "Иван Иванов", "newbie", "Математика", "начало", "Тестовая запись")
 
 def _now_msk() -> datetime:
     return datetime.now(TIMEZONE)
@@ -764,6 +765,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
 
 
