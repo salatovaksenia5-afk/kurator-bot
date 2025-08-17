@@ -1,8 +1,6 @@
 import os
 import asyncio
 import json
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta, time, timezone
 from gsheets import WS_SUMMARY, gs_log_event
 from aiohttp import web
@@ -39,6 +37,8 @@ GUIDES_FILE = os.path.join(DATA_DIR, "guides.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # ============== GOOGLE SHEETS ==============
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from aiogram import types
 from datetime import datetime
 
@@ -774,6 +774,7 @@ if __name__ == "__main__":
         print("Бот запускается...")
 
     asyncio.run(main())
+
 
 
 
