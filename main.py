@@ -17,9 +17,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 if not BOT_TOKEN:
     raise RuntimeError("Нет BOT_TOKEN. Добавь переменную окружения BOT_TOKEN на Render.")
 from aiogram import Bot, Dispatcher
-
-    bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0") or "0")  # твой телеграм ID
 TIMEZONE = timezone(timedelta(hours=3))  # МСК
@@ -773,6 +772,7 @@ if __name__ == "__main__":
         print("Бот запускается...")
 
     asyncio.run(main())
+
 
 
 
