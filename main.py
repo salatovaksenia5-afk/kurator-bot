@@ -379,13 +379,13 @@ async def handle_text(message: Message):
            save_users(USERS)
     gs_upsert_summary(uid, u)  # обновление таблицы
 
-    # Отправляем ответ пользователю
-    fio = message.text.strip()               # строка 382
-    user_data[uid] = {"fio": fio}           # строка 383
-    gs_upsert_summary(uid, user_data[uid])  # строка 384
+   fio = message.text.strip()
+   user_data[uid] = {"fio": fio, "step": "subject"}  # сохраняем шаг
+   gs_upsert_summary(uid, user_data[uid])
+   await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:")
+   await message.answer("Выбери предмет:", reply_markup=kb_subjects())
 
-    await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь бот будет отправлять задания.")
-    
+
     # Если используешь FSM
     if 'state' in locals():
         await state.clear()
@@ -804,6 +804,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
