@@ -756,8 +756,10 @@ async def start_web_app():
 
 # ============== MAIN ==============
 async def main():
+    print("Бот запускается...")
+
     # поднимаем лёгкий веб-сервис (чтобы Render видел открытый порт)
-    asyncio.create_task(start_web_app())   # <-- параллельно, а не блокирующе
+    asyncio.create_task(start_web_app())
 
     # запускаем планировщик
     asyncio.create_task(scheduler_loop())
@@ -767,12 +769,13 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        import traceback
+        print("❌ Ошибка при запуске:")
+        traceback.print_exc()
 
-    async def main():
-        print("Бот запускается...")
-
-    asyncio.run(main())
 
 
 
