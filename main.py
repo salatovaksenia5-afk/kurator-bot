@@ -81,16 +81,16 @@ def gs_log_event(tg_id, last_name, first_name, role, subject, start_date,
                  final_test=False):
         if WS_LOG is None:
            return
-    WS_LOG.append_row([
-        tg_id, last_name, first_name, role, subject, start_date,
-        "Да" if guide1_done else "Нет",
-        "Да" if guide1_read else "Нет",
-        "Да" if guide2_done else "Нет",
-        "Да" if guide2_read else "Нет",
-        "Да" if guide3_done else "Нет",
-        "Да" if guide3_read else "Нет",
-        "Да" if final_test else "Нет"
-    ])
+        WS_LOG.append_row([
+            tg_id, last_name, first_name, role, subject, start_date,
+            "Да" if guide1_done else "Нет",
+            "Да" if guide1_read else "Нет",
+            "Да" if guide2_done else "Нет",
+            "Да" if guide2_read else "Нет",
+            "Да" if guide3_done else "Нет",
+            "Да" if guide3_read else "Нет",
+            "Да" if final_test else "Нет"
+        ])
 
 WS_SUMMARY, WS_LOG = _gs_connect()
 
@@ -787,6 +787,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
 
 
