@@ -833,7 +833,7 @@ async def process_final_test(cb: CallbackQuery):
     )
     await cb.answer()
 
-# [Остальной код без изменений]
+   
 async def handle_root(request):
     return web.Response(text="kurator-bot ok")
 
@@ -842,44 +842,45 @@ async def handle_health(request):
 
 async def start_web_app():
     app = web.Application()
-    app.add_routes([web.get("/", handle_root), web.get("/health", handle_health)])
+    app.add_routes([
+        web.get("/", handle_root),
+        web.get("/health", handle_health)
+    ])
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
 
 async def main():
-    await start_web_app()
-    asyncio.create_task(scheduler_loop())
-    await dp.start_polling(bot)
-if __name__ == "__main__":
     try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
-from aiohttp import web
-import asyncio
-
-async def health(request):
-    return web.Response(text="OK")
-
-async def start_web_app():
-    app = web.Application()
-    app.router.add_get("/health", health)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8080)
-    await site.start()
-
-# Запуск и бота, и health-сервера
-async def main():
-    # Запускаем бота
+        # Закрыть предыдущие соединения
+        await bot.delete_webhook()
+     # Запускаем бота
     bot_task = asyncio.create_task(dp.start_polling(bot))
     # Запускаем сервер для аптайма
     web_task = asyncio.create_task(start_web_app())
     # Ждём оба таска
-    await asyncio.gather(bot_task, web_task)
+    await asyncio.gather(bot_task, web_task)   
+        
+        # Запустить все компоненты
+        await asyncio.gather(
+            start_web_app(),            # Веб-сервер для health-чекеров
+            dp.start_polling(bot, skip_updates=True),  # Сам бот
+            scheduler_loop()            # Фоновая задача для напоминаний
+        )
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await bot.session.close()  # Корректное завершение работы
+        
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot stopped by user")
+
+
+
     
+
