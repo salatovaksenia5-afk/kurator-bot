@@ -140,7 +140,7 @@ async def cmd_start(message: Message):
     
     # Добавляем или обновляем в Google Sheets
     gs_upsert_summary(uid, user_data)
-    def gs_upsert_summary(user_id, user_data):
+def gs_upsert_summary(user_id, user_data):
     """
     Заглушка для обновления сводки по пользователю.
     Пока можно оставить пустой, чтобы бот не падал.
@@ -800,6 +800,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
