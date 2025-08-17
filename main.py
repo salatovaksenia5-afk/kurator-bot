@@ -39,6 +39,8 @@ DATA_DIR = "data"
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 GUIDES_FILE = os.path.join(DATA_DIR, "guides.json")
 os.makedirs(DATA_DIR, exist_ok=True)
+user_data = {}  # словарь для хранения данных пользователей
+
 
 # ============== GOOGLE SHEETS ==============
 import gspread
@@ -803,6 +805,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
