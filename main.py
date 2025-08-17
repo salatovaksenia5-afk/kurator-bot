@@ -311,7 +311,7 @@ async def _send_newbie_guide(uid: int):
     await bot.send_message(uid, text, reply_markup=kb_mark_read(g["id"]))
     u["last_guide_sent_at"] = _now_msk().isoformat()
     save_users(USERS)
-gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
+    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
     gs_upsert_summary(uid, u)
 
 async def _send_subject_task(uid: int, u: dict, guide: dict):
@@ -765,5 +765,6 @@ if name == "__main__":
     except KeyboardInterrupt:
         pass
     
+
 
 
