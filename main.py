@@ -853,18 +853,32 @@ async def start_web_app():
 
 async def main():
     try:
-        # Закрыть предыдущие соединения
-        await bot.delete_webhook()
-        # Запустить все компоненты
-        await asyncio.gather(
-            start_web_app(),            # Веб-сервер для health-чекеров
-            dp.start_polling(bot, skip_updates=True),  # Сам бот
-            scheduler_loop()            # Фоновая задача для напоминаний
+        # Проверка токена перед запуском
+        if not BOT_TOKEN or not BOT_TOKEN.startswith("bot"):
+            raise ValueError("Неверный формат BOT_TOKEN")
+
+        # Улучшенная инициализация
+        await asyncio.sleep(1)  # Задержка для стабильности
+        
+        # Запуск компонентов
+        results = await asyncio.gather(
+            dp.start_polling(bot, skip_updates=True),
+            start_web_app(),
+            scheduler_loop(),
+            return_exceptions=True
         )
-    except asyncio.CancelledError:
-        pass
+        
+        # Проверка результатов
+        for result in results:
+            if isinstance(result, Exception):
+                print(f"Ошибка в компоненте: {result}")
+
+    except Exception as e:
+        print(f"Критическая ошибка: {e}")
     finally:
-        await bot.session.close()  # Корректное завершение работы
+        if not bot.session.closed:
+            await bot.session.close()
+        print("Бот остановлен")
         
 
 if __name__ == "__main__":
@@ -876,5 +890,6 @@ if __name__ == "__main__":
 
 
     
+
 
 
