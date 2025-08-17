@@ -371,6 +371,21 @@ async def handle_text(message: Message):
         save_users(USERS)
         gs_log_event(uid, u["fio"], u.get("role",""), u.get("subject",""), "ФИО введено")
         gs_upsert_summary(uid, u)
+        if u.get("awaiting_fio"):
+    # сохраняем ФИО
+           fio = message.text.strip()
+           u["fio"] = fio
+           u["awaiting_fio"] = False
+         save_users(USERS)
+    gs_upsert_summary(uid, u)  # обновление таблицы
+
+    # Отправляем ответ пользователю
+    await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь бот будет отправлять задания.")
+    
+    # Если используешь FSM
+    if 'state' in locals():
+        await state.clear()
+    return  # чтобы дальше не шли остальные проверки
         await message.answer("✅ ФИО сохранено.\nТеперь выбери предмет:", reply_markup=kb_subjects())
         return
 
@@ -785,6 +800,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
