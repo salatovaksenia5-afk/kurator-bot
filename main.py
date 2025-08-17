@@ -524,8 +524,7 @@ async def newbie_task_done(cb: CallbackQuery):
         return
 
     guide_id = cb.data.split(":")[2]
-    idx = u.                
-get("guide_index", 0)
+    idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
     if idx >= len(items):
         await cb.answer("Все гайды уже пройдены.")
@@ -765,6 +764,7 @@ if name == "__main__":
     except KeyboardInterrupt:
         pass
     
+
 
 
 
