@@ -11,7 +11,10 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 )
+from aiogram import Bot, Dispatcher
 
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 # ============== НАСТРОЙКИ / КОНСТАНТЫ ==============
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 if not BOT_TOKEN:
@@ -769,6 +772,7 @@ if __name__ == "__main__":
         print("Бот запускается...")
 
     asyncio.run(main())
+
 
 
 
