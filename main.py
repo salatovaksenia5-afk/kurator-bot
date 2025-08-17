@@ -445,7 +445,7 @@ async def role_set(cb: CallbackQuery):
     gs_upsert_summary(cb.from_user.id, u)
 
     # HR онбординг
-    @dp.callback_query_handler(lambda cb: cb.data == "newbie")
+@dp.callback_query_handler(lambda cb: cb.data == "newbie")
 async def newbie_onboarding(cb: types.CallbackQuery):
     if HR_CHAT_LINK:
         keyboard = InlineKeyboardMarkup(
@@ -818,6 +818,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
