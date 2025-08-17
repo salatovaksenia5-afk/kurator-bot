@@ -855,13 +855,6 @@ async def main():
     try:
         # Закрыть предыдущие соединения
         await bot.delete_webhook()
-     # Запускаем бота
-    bot_task = asyncio.create_task(dp.start_polling(bot))
-    # Запускаем сервер для аптайма
-    web_task = asyncio.create_task(start_web_app())
-    # Ждём оба таска
-    await asyncio.gather(bot_task, web_task)   
-        
         # Запустить все компоненты
         await asyncio.gather(
             start_web_app(),            # Веб-сервер для health-чекеров
@@ -883,4 +876,5 @@ if __name__ == "__main__":
 
 
     
+
 
