@@ -34,124 +34,82 @@ GUIDES_FILE = os.path.join(DATA_DIR, "guides.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # ============== GOOGLE SHEETS ==============
-import gspread
-from google.oauth2.service_account import Credentials
+from aiogram import types
+from datetime import datetime
 
-def _gs_connect():
+def add_user_to_sheets(user: types.User):
     """
-    Подключение к Google Sheets с нужными колонками.
+    Добавляет нового пользователя в WS_SUMMARY с нужными колонками.
+    Если пользователь уже есть, просто обновляет информацию.
     """
-    key_json = os.getenv("GOOGLE_KEY_JSON", "")
-    spreadsheet_url = os.getenv("SPREADSHEET_URL", "")
-    if not key_json or not spreadsheet_url:
-        print("⚠️ GOOGLE_KEY_JSON или SPREADSHEET_URL не заданы — Sheets логирование будет отключено.")
-        return None, None
-
-    try:
-        keyfile_dict = json.loads(key_json)
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scope)
-        gc = gspread.authorize(creds)
-        sh = gc.open_by_url(spreadsheet_url)
-
-        # Лист1 — сводка
-        ws_summary = sh.sheet1
-
-        # Лист Лог
-        try:
-            ws_log = sh.worksheet("Лог")
-        except gspread.WorksheetNotFound:
-            ws_log = sh.add_worksheet(title="Лог", rows=1000, cols=20)
-            ws_log.append_row([
-                "tg_id", "Фамилия", "Имя", "Роль", "Предмет", "Дата_начала",
-                "Гайд_1_пройден", "Гайд_1_прочитан",
-                "Гайд_2_пройден", "Гайд_2_прочитан",
-                "Гайд_3_пройден", "Гайд_3_прочитан",
-                "Финальный_тест"
-            ])
-        return ws_summary, ws_log
-
-    except Exception as e:
-        print("⚠️ Ошибка подключения к Google Sheets:", e)
-        return None, None
-def gs_log_event(tg_id, last_name, first_name, role, subject, start_date,
-                 guide1_done=False, guide1_read=False,
-                 guide2_done=False, guide2_read=False,
-                 guide3_done=False, guide3_read=False,
-                 final_test=False):
-        if WS_LOG is None:
-           return
-        WS_LOG.append_row([
-            tg_id, last_name, first_name, role, subject, start_date,
-            "Да" if guide1_done else "Нет",
-            "Да" if guide1_read else "Нет",
-            "Да" if guide2_done else "Нет",
-            "Да" if guide2_read else "Нет",
-            "Да" if guide3_done else "Нет",
-            "Да" if guide3_read else "Нет",
-            "Да" if final_test else "Нет"
-        ])
-
-WS_SUMMARY, WS_LOG = _gs_connect()
-
-def gs_log_event(tg_id, fio, role, subject, event, details=""):
-    if WS_LOG:
-        WS_LOG.append_row([_now_msk().strftime("%Y-%m-%d %H:%M:%S"), tg_id, fio, role, subject, event, details])
-        gs_log_event(12345, "Иванов", "Иван", "newbie", "Математика", "2025-08-17")
-        gs_log_event(
-    tg_id, last_name, first_name, role, subject, start_date,
-    guide1_done=True, guide1_read=False,
-    guide2_done=False, guide2_read=True,
-    guide3_done=False, guide3_read=False,
-    final_test=False
-)
-def _now_msk() -> datetime:
-    return datetime.now(TIMEZONE)
-
-def gs_log_event(uid: int, fio: str, role: str, subject: str, event: str, details: str = ""):
-    if not WS_LOG:
-        return
-    try:
-        WS_LOG.append_row([
-            _now_msk().strftime("%Y-%m-%d %H:%M:%S"),
-            str(uid), fio or "", role or "", subject or "", event, details
-        ])
-    except Exception as e:
-        print("⚠️ Sheets LOG error:", e)
-
-def gs_upsert_summary(uid: int, u: dict):
-    """ Обновляем или создаем строку пользователя в summary-листе. """
     if not WS_SUMMARY:
+        print("⚠️ WS_SUMMARY не подключен")
         return
+
+    uid = user.id
+    fio = f"{user.first_name} {user.last_name or ''}".strip()
+    now = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Пример структуры progress: guide_1, guide_2, guide_3, final_test
+    progress = {
+        "guide_1": {"read": False, "task_done": False},
+        "guide_2": {"read": False, "task_done": False},
+        "guide_3": {"read": False, "task_done": False},
+        "final_test": {"done": False}
+    }
+
+    user_dict = {
+        "fio": fio,
+        "role": "newbie",
+        "subject": "",  # можно заполнить по умолчанию
+        "status": "active",
+        "guide_index": 0,
+        "progress": progress,
+        "created_at": now,
+        "finished_at": "",
+        "last_guide_sent_at": ""
+    }
+
+    # Проверяем, есть ли пользователь
+    all_values = WS_SUMMARY.get_all_records()
+    row_index = None
+    for i, row in enumerate(all_values, start=2):
+        if str(row.get("TG_ID")) == str(uid):
+            row_index = i
+            break
+
+    # Формируем значения для записи
+    values = [
+        str(uid),
+        fio,
+        user_dict.get("role"),
+        user_dict.get("subject"),
+        user_dict.get("status"),
+        int(user_dict.get("guide_index", 0)),
+        int(user_dict["progress"]["guide_1"]["read"]),
+        int(user_dict["progress"]["guide_2"]["read"]),
+        int(user_dict["progress"]["guide_3"]["read"]),
+        int(user_dict["progress"]["guide_1"]["task_done"]),
+        int(user_dict["progress"]["guide_2"]["task_done"]),
+        int(user_dict["progress"]["guide_3"]["task_done"]),
+        int(user_dict["progress"]["final_test"]["done"]),
+        user_dict.get("created_at"),
+        user_dict.get("finished_at"),
+        user_dict.get("last_guide_sent_at")
+    ]
+
     try:
-        all_values = WS_SUMMARY.get_all_records()
-        row_index = None
-        for i, row in enumerate(all_values, start=2):
-            if str(row.get("TG_ID")) == str(uid):
-                row_index = i
-                break
-        values = [
-            str(uid),
-            u.get("fio") or "",
-            u.get("role") or "",
-            u.get("subject") or "",
-            u.get("status") or "",
-            int(u.get("guide_index", 0)),
-            sum(1 for v in u.get("progress", {}).values() if v.get("read")),
-            sum(1 for v in u.get("progress", {}).values() if v.get("task_done")),
-            sum(1 for v in u.get("progress", {}).values() if v.get("test_done")),
-            u.get("created_at", ""),
-            u.get("finished_at", ""),
-            u.get("last_guide_sent_at", "")
-        ]
         if row_index:
-            # обновляем построчно (быстрее одним range, но так проще)
             for col, val in enumerate(values, start=1):
                 WS_SUMMARY.update_cell(row_index, col, val)
         else:
             WS_SUMMARY.append_row(values)
     except Exception as e:
-        print("⚠️ Sheets SUMMARY error:", e)
+        print("⚠️ Ошибка записи в WS_SUMMARY:", e)
+@dp.message(CommandStart())
+async def start_command(message: types.Message):
+    add_user_to_sheets(message.from_user)
+    await message.answer(f"Привет, {message.from_user.first_name}! Ты добавлен в таблицу.")
 
 # ============== JSON "БД" ==============
 def _read_json(path: str, default):
@@ -787,6 +745,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
 
 
