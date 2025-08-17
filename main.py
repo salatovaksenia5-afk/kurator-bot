@@ -478,14 +478,7 @@ async def newbie_onboarding(cb: types.CallbackQuery):
     else:
         await cb.message.answer("Ссылка HR ещё не задана. Обратитесь к администратору.")
 
-# Регистрация callback в aiogram 3.x
-   dp.callback_query.register(newbie_onboarding, F.data == "newbie")
-        await cb.message.answer(
-        "Гайды будут приходить по одному каждый день после 08:00 МСК.\n"
-        "После прочтения открывается задание. Сдать его можно до 22:00 МСК.",
-        reply_markup=kb_main("newbie")
-    )
-        await cb.answer()
+
 
 # ============== ХЕНДЛЕРЫ: ПРОГРЕСС / КАТАЛОГ ==============
 @dp.callback_query(F.data == "progress:me")
@@ -831,6 +824,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
