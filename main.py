@@ -74,7 +74,7 @@ def _gs_connect():
     except Exception as e:
         print("⚠️ Ошибка подключения к Google Sheets:", e)
         return None, None
-        def gs_log_event(tg_id, last_name, first_name, role, subject, start_date,
+def gs_log_event(tg_id, last_name, first_name, role, subject, start_date,
                  guide1_done=False, guide1_read=False,
                  guide2_done=False, guide2_read=False,
                  guide3_done=False, guide3_read=False,
@@ -787,6 +787,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
 
 
