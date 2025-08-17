@@ -380,6 +380,10 @@ async def handle_text(message: Message):
     gs_upsert_summary(uid, u)  # обновление таблицы
 
     # Отправляем ответ пользователю
+    fio = message.text.strip()               # строка 382
+    user_data[uid] = {"fio": fio}           # строка 383
+    gs_upsert_summary(uid, user_data[uid])  # строка 384
+
     await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь бот будет отправлять задания.")
     
     # Если используешь FSM
@@ -800,6 +804,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
