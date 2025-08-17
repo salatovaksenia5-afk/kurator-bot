@@ -5,7 +5,8 @@ from datetime import datetime, time
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.filters import Command, TextFilter, StateFilter 
+from aiogram.filters import Command, StateFilter
+from aiogram.filters.text import Text 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import gspread
@@ -323,6 +324,7 @@ if __name__=="__main__":
 
 
     
+
 
 
 
