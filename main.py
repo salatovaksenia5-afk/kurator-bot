@@ -385,7 +385,7 @@ async def handle_text(message: Message):
     # Если используешь FSM
     if 'state' in locals():
         await state.clear()
-    return  # чтобы дальше не шли остальные проверки
+        return  # чтобы дальше не шли остальные проверки
         await message.answer("✅ ФИО сохранено.\nТеперь выбери предмет:", reply_markup=kb_subjects())
         return
 
@@ -800,6 +800,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
