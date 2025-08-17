@@ -35,13 +35,13 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 # ============== GOOGLE SHEETS ==============
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 
 def _gs_connect():
     """
-    Подключение к Google Sheets:
-    - GOOGLE_KEY_JSON: весь JSON ключ сервисного аккаунта (как строка в env)
-    - SPREADSHEET_URL: полный URL таблицы
+    Подключение к Google Sheets через переменные окружения:
+    - GOOGLE_KEY_JSON
+    - SPREADSHEET_URL
     """
     key_json = os.getenv("GOOGLE_KEY_JSON", "")
     spreadsheet_url = os.getenv("SPREADSHEET_URL", "")
@@ -50,23 +50,26 @@ def _gs_connect():
         return None, None
 
     try:
-        keyfile_dict = json.loads(key_json)
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scope)
+        creds_dict = json.loads(key_json)
+        creds = Credentials.from_service_account_info(
+            creds_dict,
+            scopes=["https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive"]
+        )
         gc = gspread.authorize(creds)
         sh = gc.open_by_url(spreadsheet_url)
-        # Лист1 — сводка по пользователю; Лист2 — поток событий (лог)
+
+        # Лист1 — сводка
         ws_summary = sh.sheet1
-        ws_log = None
+
+        # Лист логов
         try:
             ws_log = sh.worksheet("Лог")
         except gspread.WorksheetNotFound:
             ws_log = sh.add_worksheet(title="Лог", rows=1000, cols=10)
             ws_log.append_row(["ts", "tg_id", "fio", "role", "subject", "event", "details"])
-        # В summary ожидаем колонки:
-        # A: TG_ID, B: ФИО, C: Роль, D: Предмет, E: Статус,
-        # F: Гайд_индекс, G: Завершено_гайдов, H: Выполнено_заданий, I: Пройдено_тестов,
-        # J: Дата_начала, K: Дата_окончания, L: Последний_гайд_дата
+
+        # Проверка заголовков summary
         headers = ws_summary.row_values(1)
         if not headers or headers[0] != "TG_ID":
             ws_summary.clear()
@@ -75,14 +78,19 @@ def _gs_connect():
                 "Гайд_индекс", "Завершено_гайдов", "Выполнено_заданий", "Пройдено_тестов",
                 "Дата_начала", "Дата_окончания", "Последний_гайд_дата"
             ])
+
         return ws_summary, ws_log
+
     except Exception as e:
         print("⚠️ Ошибка подключения к Google Sheets:", e)
         return None, None
 
 WS_SUMMARY, WS_LOG = _gs_connect()
-gs_log_event(12345, "Иван Иванов", "newbie", "Математика", "начало", "Тестовая запись")
 
+def gs_log_event(tg_id, fio, role, subject, event, details=""):
+    if WS_LOG:
+        WS_LOG.append_row([_now_msk().strftime("%Y-%m-%d %H:%M:%S"), tg_id, fio, role, subject, event, details])
+        gs_log_event(12345, "Иван Иванов", "newbie", "Математика", "начало", "Тестовая запись")
 def _now_msk() -> datetime:
     return datetime.now(TIMEZONE)
 
@@ -765,6 +773,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
 
 
