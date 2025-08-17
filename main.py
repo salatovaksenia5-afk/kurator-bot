@@ -376,7 +376,7 @@ async def handle_text(message: Message):
            fio = message.text.strip()
            u["fio"] = fio
            u["awaiting_fio"] = False
-         save_users(USERS)
+           save_users(USERS)
     gs_upsert_summary(uid, u)  # обновление таблицы
 
     # Отправляем ответ пользователю
@@ -800,6 +800,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
