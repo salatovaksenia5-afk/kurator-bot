@@ -103,7 +103,7 @@ def gs_upsert_summary(uid: int, u: dict):
     try:
         all_values = WS_SUMMARY.get_all_records()
         row_index = None
-    for i, row in enumerate(all_values, start=2):
+        for i, row in enumerate(all_values, start=2):
             if str(row.get("TG_ID")) == str(uid):
                 row_index = i
                 break
@@ -765,4 +765,5 @@ if name == "__main__":
     except KeyboardInterrupt:
         pass
     
+
 
