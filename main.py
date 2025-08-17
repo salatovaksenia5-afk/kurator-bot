@@ -445,15 +445,27 @@ async def role_set(cb: CallbackQuery):
     gs_upsert_summary(cb.from_user.id, u)
 
     # HR онбординг
+    @dp.callback_query_handler(lambda cb: cb.data == "newbie")
+async def newbie_onboarding(cb: types.CallbackQuery):
     if HR_CHAT_LINK:
-        await cb.message.answer(
-            "👥 Вступи, пожалуйста, в чат новичков и возвращайся сюда:",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
                 [InlineKeyboardButton(text="Вступить в чат новичков", url=HR_CHAT_LINK)]
-            ])
+            ]
         )
-        gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.
-     get("subject",""), "Выдана HR-ссылка")
+        await cb.message.answer(
+            "Привет! 👋 Ты указал, что ты новичок. Вступи, пожалуйста, в чат новичков и возвращайся сюда.",
+            reply_markup=keyboard
+        )
+        gs_log_event(
+            cb.from_user.id,
+            u.get("fio", ""),
+            "newbie",
+            u.get("subject", ""),
+            "Выдана HR-ссылка"
+        )
+    else:
+        await cb.message.answer("Ссылка HR ещё не задана. Обратитесь к администратору.")
 
     await cb.message.answer(
         "Гайды будут приходить по одному каждый день после 08:00 МСК.\n"
@@ -806,6 +818,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
