@@ -750,15 +750,16 @@ async def start_web_app():
 # ============== MAIN ==============
 async def main():
     # поднимаем лёгкий веб-сервис (чтобы Render видел открытый порт)
-    await start_web_app()
+    asyncio.create_task(start_web_app())   # <-- параллельно, а не блокирующе
 
     # запускаем планировщик
     asyncio.create_task(scheduler_loop())
 
-    # запускаем бота
+    # запускаем бота (главный цикл)
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
+
+if name == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
