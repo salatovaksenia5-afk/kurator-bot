@@ -1,9 +1,12 @@
 import os
 import asyncio
 import json
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta, time, timezone
 from gsheets import WS_SUMMARY, gs_log_event
 from aiohttp import web
+
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -772,6 +775,7 @@ if __name__ == "__main__":
         print("Бот запускается...")
 
     asyncio.run(main())
+
 
 
 
