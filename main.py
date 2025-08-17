@@ -110,7 +110,29 @@ def add_user_to_sheets(user: types.User):
 async def start_command(message: types.Message):
     add_user_to_sheets(message.from_user)
     await message.answer(f"Привет, {message.from_user.first_name}! Ты добавлен в таблицу.")
-
+@dp.message(CommandStart())
+async def cmd_start(message: Message):
+    uid = message.from_user.id
+    fio = f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
+    
+    # Формируем словарь пользователя
+    user_data = {
+        "fio": fio,
+        "role": "newbie",
+        "subject": "",
+        "created_at": datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M"),
+        "progress": {
+            "guide1": {"read": False, "task_done": False},
+            "guide2": {"read": False, "task_done": False},
+            "guide3": {"read": False, "task_done": False},
+            "final_test": {"done": False}
+        }
+    }
+    
+    # Добавляем или обновляем в Google Sheets
+    gs_upsert_summary(uid, user_data)
+    
+    await message.answer(f"Привет, {fio}! Ты добавлен в таблицу.")
 # ============== JSON "БД" ==============
 def _read_json(path: str, default):
     try:
@@ -741,11 +763,12 @@ async def main():
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    import asyncio
 
+    async def main():
+        print("Бот запускается...")
+
+    asyncio.run(main())
 
 
 
