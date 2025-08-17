@@ -445,8 +445,18 @@ async def role_set(cb: CallbackQuery):
     gs_upsert_summary(cb.from_user.id, u)
 
     # HR онбординг
-@dp.callback_query_handler(lambda cb: cb.data == "newbie")
+# Функция логирования (пример, можно заменить на вашу реальную)
+def gs_log_event(user_id, fio, role, subject, action):
+    print(f"[LOG] {user_id} | {fio} | {role} | {subject} | {action}")
+
+# Функция-обработчик нажатия кнопки "новичок"
 async def newbie_onboarding(cb: types.CallbackQuery):
+    # Пример данных пользователя (замени на реальные)
+    u = {
+        "fio": "Имя Фамилия",
+        "subject": "Курс Python"
+    }
+
     if HR_CHAT_LINK:
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -457,6 +467,7 @@ async def newbie_onboarding(cb: types.CallbackQuery):
             "Привет! 👋 Ты указал, что ты новичок. Вступи, пожалуйста, в чат новичков и возвращайся сюда.",
             reply_markup=keyboard
         )
+        # Логируем событие
         gs_log_event(
             cb.from_user.id,
             u.get("fio", ""),
@@ -467,6 +478,8 @@ async def newbie_onboarding(cb: types.CallbackQuery):
     else:
         await cb.message.answer("Ссылка HR ещё не задана. Обратитесь к администратору.")
 
+# Регистрация callback в aiogram 3.x
+dp.callback_query.register(newbie_onboarding, F.data == "newbie")
     await cb.message.answer(
         "Гайды будут приходить по одному каждый день после 08:00 МСК.\n"
         "После прочтения открывается задание. Сдать его можно до 22:00 МСК.",
@@ -818,6 +831,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
