@@ -386,13 +386,6 @@ async def handle_text(message: Message):
     gs_upsert_summary(uid, user_data[uid])
     await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
 
-    # Если используешь FSM
-    if 'state' in locals():
-        await state.clear()
-        return  # чтобы дальше не шли остальные проверки
-        await message.answer("✅ ФИО сохранено.\nТеперь выбери предмет:", reply_markup=kb_subjects())
-        return
-
     # Код для летника
     if u.get("awaiting_code"):
         if text == LETL_CODE:
@@ -831,6 +824,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
