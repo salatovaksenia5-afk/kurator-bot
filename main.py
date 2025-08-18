@@ -516,6 +516,19 @@ async def newbie_mark_read(cb: CallbackQuery):
     await cb.message.answer("📖 Отмечено как прочитано. Выдаю задание…")
     await _send_subject_task(cb.from_user.id, u, guide)
     await cb.answer()
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+send_task_button = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Отправить задание", callback_data="send_task")]
+    ]
+)
+
+await message.answer(
+    "🧩 Задание к гайду: выполни практику и отметь выполнение до дедлайна.",
+    reply_markup=send_task_button,
+    parse_mode="HTML"
+)
 
 @dp.callback_query(F.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
@@ -772,6 +785,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
