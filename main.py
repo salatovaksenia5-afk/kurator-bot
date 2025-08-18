@@ -118,10 +118,6 @@ def add_user_to_sheets(user: types.User):
     except Exception as e:
         print("⚠️ Ошибка записи в WS_SUMMARY:", e)
 @dp.message(CommandStart())
-async def start_command(message: types.Message):
-    add_user_to_sheets(message.from_user)
-    await message.answer(f"Привет, {message.from_user.first_name}! Ты добавлен в таблицу.")
-@dp.message(CommandStart())
 async def cmd_start(message: Message):
     uid = message.from_user.id
     fio = f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
@@ -779,6 +775,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
