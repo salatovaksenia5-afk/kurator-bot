@@ -341,7 +341,7 @@ async def start(message: Message):
     u = user(message)
     u["awaiting_fio"] = True
     save_users(USERS)
-    await message.answer("👋 Привет! Я бот-куратор.\nНапиши, пожалуйста, свою <b>фамилию и имя</b> (ФИО).")
+    await message.answer("👋 Привет! Я бот-куратор.\nНапиши, пожалуйста, свою 🎉фамилию и имя (ФИО).")
 
 @dp.message(F.text)
 async def handle_text(message: Message):
@@ -400,13 +400,6 @@ async def subject_set(cb: CallbackQuery):
         reply_markup=kb_role()
     )
     await cb.answer()
-    # Дать пользователю меню
-    await cb.message.answer(
-        "🎉 Ты зарегистрирован как новичок!\nТеперь у тебя доступно меню:",
-        reply_markup=kb_main("newbie")
-    )
-    await cb.answer()
-
 
 @dp.callback_query(F.data.startswith("role:"))
 async def role_set(cb: CallbackQuery):
@@ -426,6 +419,12 @@ async def role_set(cb: CallbackQuery):
     save_users(USERS)
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Выбрана роль: новичок")
     gs_upsert_summary(cb.from_user.id, u)
+        await cb.message.answer(
+        "🎉 Ты зарегистрирован как новичок!\nТеперь у тебя доступно меню:",
+        reply_markup=kb_main("newbie")
+    )
+    await cb.answer()
+
 
 
 # ============== ХЕНДЛЕРЫ: ПРОГРЕСС / КАТАЛОГ ==============
@@ -772,6 +771,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
