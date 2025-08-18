@@ -396,7 +396,7 @@ async def subject_set(cb: CallbackQuery):
     gs_upsert_summary(cb.from_user.id, u)
 
     await cb.message.answer(
-        f"📘 Предмет сохранён: <b>{subj}</b>\nТеперь выбери свою роль:",
+        f"📘 Предмет сохранён: {subj}\nТеперь выбери свою роль:",
         reply_markup=kb_role()
     )
     await cb.answer()
@@ -441,12 +441,12 @@ async def progress_me(cb: CallbackQuery):
     done_tests = sum(1 for v in u.get("progress", {}).values() if v.get("test_done"))
     text = (
         f"📊 Твой прогресс\n\n"
-        f"ФИО: <b>{u.get('fio','—')}</b>\n"
-        f"Роль: <b>{role}</b>\n"
-        f"Предмет: <b>{subj}</b>\n"
-        f"Текущий гайд (новичок): <b>{idx}/{len(GUIDES['newbie'])}</b>\n"
-        f"Выполнено заданий: <b>{done_tasks}</b>\n"
-        f"Пройдено тестов: <b>{done_tests}</b>\n"
+        f"ФИО: <b>{u.get('fio','—')}</b>\n", parse_mode="HTML"
+        f"Роль: <b>{role}</b>\n", parse_mode="HTML"
+        f"Предмет: <b>{subj}</b>\n", parse_mode="HTML"
+        f"Текущий гайд (новичок): <b>{idx}/{len(GUIDES['newbie'])}</b>\n", parse_mode="HTML"
+        f"Выполнено заданий: <b>{done_tasks}</b>\n", parse_mode="HTML"
+        f"Пройдено тестов: <b>{done_tests}</b>\n", parse_mode="HTML"
     )
     await cb.message.answer(text)
     await cb.answer()
@@ -784,6 +784,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
