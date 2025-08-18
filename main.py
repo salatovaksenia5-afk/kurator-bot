@@ -418,7 +418,7 @@ async def role_set(cb: CallbackQuery):
     u["status"] = "Новичок (старт обучения)"
     save_users(USERS)
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Выбрана роль: новичок")
- await cb.message.answer(
+    await cb.message.answer(
      "🎉 Ты зарегистрирован как новичок!\nТеперь у тебя доступно меню:",
      reply_markup=kb_main("newbie")
     )
@@ -772,6 +772,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
