@@ -400,6 +400,13 @@ async def subject_set(cb: CallbackQuery):
         reply_markup=kb_role()
     )
     await cb.answer()
+    # Дать пользователю меню
+    await cb.message.answer(
+        "🎉 Ты зарегистрирован как новичок!\nТеперь у тебя доступно меню:",
+        reply_markup=kb_main("newbie")
+    )
+    await cb.answer()
+
 
 @dp.callback_query(F.data.startswith("role:"))
 async def role_set(cb: CallbackQuery):
@@ -765,6 +772,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
