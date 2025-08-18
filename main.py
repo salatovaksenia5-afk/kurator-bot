@@ -213,12 +213,6 @@ SUBJECT_TASKS = {
     "химия": "Реши 3 расчётных задачи и отправь один полный разбор."
 }
 
-# ============== БОТ ==============
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-
 # ============== КЛАВИАТУРЫ ==============
 def kb_subjects():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -771,6 +765,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
