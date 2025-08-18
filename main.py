@@ -385,7 +385,7 @@ async def handle_text(message: Message):
     user_data[uid] = {"fio": fio, "step": "subject"}
     gs_upsert_summary(uid, user_data[uid])
     await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
-    @dp.callback_query(lambda c: c.data and c.data.startswith("role:"))
+@dp.callback_query(lambda c: c.data and c.data.startswith("role:"))
 async def role_callback_handler(callback: CallbackQuery):
     role = callback.data.split(":")[1]  # "newbie" или "letnik"
     uid = str(callback.from_user.id)
@@ -845,6 +845,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
