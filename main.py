@@ -523,7 +523,7 @@ send_task_button = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="✅ Отправить задание", callback_data="send_task")]
     ]
 )
-    await message.answer(
+    await cb.message.answer(
         "🧩 Задание к гайду: выполни практику и отметь выполнение до дедлайна.",
         reply_markup=send_task_button,
         parse_mode="HTML"
@@ -784,6 +784,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
