@@ -443,13 +443,6 @@ HR_CHAT_LINK = "https://t.me/your_hr_chat"
 def gs_log_event(user_id, fio, role, subject, action):
     print(f"[LOG] {user_id} | {fio} | {role} | {subject} | {action}")
 
-# Функция-обработчик выбора роли
-async def role_choice_handler(cb: types.CallbackQuery):
-    # Пример данных пользователя (можно получать из базы)
-    u = {
-        "fio": "Имя Фамилия",
-        "subject": "Курс Python"
-    }
 
     if cb.data == "newbie":
         # Отправляем ссылку новичку
@@ -464,17 +457,6 @@ async def role_choice_handler(cb: types.CallbackQuery):
         )
         gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Выдана HR-ссылка")
 
-    elif cb.data == "summer":
-        # Сообщение для летника
-        await cb.message.answer(
-            "Привет! ☀️ Ты летник. Гайды будут приходить по одному каждый день после 08:00 МСК.\n"
-            "После прочтения открывается задание. Сдать его можно до 22:00 МСК.",
-            reply_markup=kb_main("summer")  # твоя клавиатура для летника
-        )
-        gs_log_event(cb.from_user.id, u.get("fio",""), "summer", u.get("subject",""), "Выдан гайд летнику")
-
-    # Закрываем callback (убираем "часики")
-    await cb.answer()
 
 # Регистрация callback для обеих ролей
 dp.callback_query.register(role_choice_handler, F.data.in_({"newbie", "summer"}))
@@ -824,6 +806,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
