@@ -117,10 +117,6 @@ def add_user_to_sheets(user: types.User):
             WS_SUMMARY.append_row(values)
     except Exception as e:
         print("⚠️ Ошибка записи в WS_SUMMARY:", e)
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
-    uid = message.from_user.id
-    fio = f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
     
     # Формируем словарь пользователя
     user_data = {
@@ -775,6 +771,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
