@@ -441,18 +441,12 @@ async def progress_me(cb: CallbackQuery):
     done_tests = sum(1 for v in u.get("progress", {}).values() if v.get("test_done"))
     text = (
         f"📊 Твой прогресс\n\n"
-        f"ФИО: <b>{u.get('fio','—')}</b>\n",
-        parse_mode="HTML"
-        f"Роль: <b>{role}</b>\n", 
-        parse_mode="HTML"
-        f"Предмет: <b>{subj}</b>\n",
-        parse_mode="HTML"
-        f"Текущий гайд (новичок): <b>{idx}/{len(GUIDES['newbie'])}</b>\n", 
-        parse_mode="HTML"
-        f"Выполнено заданий: <b>{done_tasks}</b>\n",
-        parse_mode="HTML"
-        f"Пройдено тестов: <b>{done_tests}</b>\n", 
-        parse_mode="HTML"
+        f"ФИО: {u.get('fio','—')}\n",
+        f"Роль: {role}\n", 
+        f"Предмет: {subj}\n",
+        f"Текущий гайд (новичок): {idx}/{len(GUIDES['newbie'])}\n", 
+        f"Выполнено заданий: {done_tasks}\n",
+        f"Пройдено тестов: {done_tests}\n", 
     )
     await cb.message.answer(text)
     await cb.answer()
@@ -790,6 +784,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
