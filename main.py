@@ -226,7 +226,6 @@ bot = Bot(
     token=BOT_TOKEN,
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
-dp = Dispatcher()
 
 # ============== КЛАВИАТУРЫ ==============
 def kb_subjects():
@@ -780,6 +779,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
