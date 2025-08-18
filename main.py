@@ -435,32 +435,6 @@ async def role_set(cb: CallbackQuery):
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Выбрана роль: новичок")
     gs_upsert_summary(cb.from_user.id, u)
 
-    # HR онбординг
-# Ссылка на чат новичков (HR-анбординг)
-HR_CHAT_LINK = "https://t.me/your_hr_chat"
-
-# Пример функции логирования
-def gs_log_event(user_id, fio, role, subject, action):
-    print(f"[LOG] {user_id} | {fio} | {role} | {subject} | {action}")
-
-
-    if cb.data == "newbie":
-        # Отправляем ссылку новичку
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="Вступить в чат новичков", url=HR_CHAT_LINK)]
-            ]
-        )
-        await cb.message.answer(
-            "Привет! 👋 Ты новичок. Вступи, пожалуйста, в чат новичков и возвращайся сюда.",
-            reply_markup=keyboard
-        )
-        gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Выдана HR-ссылка")
-
-
-# Регистрация callback для обеих ролей
-dp.callback_query.register(role_choice_handler, F.data.in_({"newbie", "summer"}))
-
 
 # ============== ХЕНДЛЕРЫ: ПРОГРЕСС / КАТАЛОГ ==============
 @dp.callback_query(F.data == "progress:me")
@@ -806,6 +780,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
