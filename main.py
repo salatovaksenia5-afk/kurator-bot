@@ -305,7 +305,7 @@ if idx >= len(items):
         gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
         return
 
-    g = items[idx]
+g = items[idx]
     # Отправляем сам гайд
     text = (
         f"📘 Сегодняшний гайд #{g['num']}: <b>{g['title']}</b>\n"
@@ -802,6 +802,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
