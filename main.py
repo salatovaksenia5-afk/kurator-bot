@@ -533,7 +533,7 @@ async def newbie_mark_read(cb: CallbackQuery):
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Отмечен прочитанным", f"guide={guide_id}")
     gs_upsert_summary(cb.from_user.id, u)
 
-kb_task = InlineKeyboardMarkup(inline_keyboard=[
+    kb_task = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"newbie:task:{guide_id}")]
     ])
 
@@ -799,6 +799,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
