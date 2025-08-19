@@ -295,6 +295,8 @@ async def _send_newbie_guide(uid: int):
     if not u or u.get("role") != "newbie":
         return
     idx = u.get("guide_index", 0)
+    u["last_guide_sent_at"] = None  # сбрасываем, чтобы scheduler утром выдал новый
+save_users(USERS)
     items = GUIDES["newbie"]
     if idx >= len(items):
         # Все гайды пройдены — финальный тест (однократно)
@@ -779,6 +781,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
