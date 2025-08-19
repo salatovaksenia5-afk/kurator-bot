@@ -487,7 +487,7 @@ async def guides_menu(cb: CallbackQuery):
                     f"Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
                     reply_markup=kb_mark_read(g["id"])
                 )
-          else:
+         else:
                 # --- Ситуация 3: гайд ещё не открыт (ждём 08:00 следующего дня) ---
                 await cb.message.answer("⏳ Следующий гайд будет доступен завтра после 08:00 МСК.")
 
@@ -799,6 +799,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
