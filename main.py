@@ -464,7 +464,7 @@ async def guides_menu(cb: CallbackQuery):
         await cb.message.answer("⚡ Материалы для летников:\n\n" + "\n".join(lines))
     else:
         # текущий/следующий гайд
-       else:
+    else:
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
 
@@ -802,6 +802,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
