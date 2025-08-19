@@ -298,7 +298,7 @@ async def _send_newbie_guide(uid: int):
     u["last_guide_sent_at"] = None  # сбрасываем, чтобы scheduler утром выдал новый
 save_users(USERS)
 items = GUIDES["newbie"]
-    if idx >= len(items):
+if idx >= len(items):
         # Все гайды пройдены — финальный тест (однократно)
         await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
         await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
@@ -802,6 +802,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
