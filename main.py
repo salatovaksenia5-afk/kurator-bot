@@ -533,17 +533,16 @@ async def newbie_mark_read(cb: CallbackQuery):
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Отмечен прочитанным", f"guide={guide_id}")
     gs_upsert_summary(cb.from_user.id, u)
 
-    await cb.message.answer("📖 Отмечено как прочитано. Выдаю задание…")
+kb_task = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"newbie:task:{guide_id}")]
+    ])
+
+    await cb.message.answer("📖 Отмечено как прочитано. Теперь выполни задание и отметься:", reply_markup=kb_task)
+
+    # при желании можно оставить и отправку самого задания
     await _send_subject_task(cb.from_user.id, u, guide)
+
     await cb.answer()
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-send_task_button = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Отправить задание", callback_data="send_task")]
-    ]
-)
-
 @dp.callback_query(F.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
     u = user(cb)
@@ -799,6 +798,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
