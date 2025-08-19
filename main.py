@@ -464,17 +464,38 @@ async def guides_menu(cb: CallbackQuery):
         await cb.message.answer("⚡ Материалы для летников:\n\n" + "\n".join(lines))
     else:
         # текущий/следующий гайд
-        idx = u.get("guide_index", 0)
-        items = GUIDES["newbie"]
-        if idx >= len(items):
-            await cb.message.answer("🎉 Все гайды пройдены. Доступен финальный тест.", reply_markup=kb_final_test())
-        else:
+       else:
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
+
+    # все гайды пройдены
+    if idx >= len(items):
+        await cb.message.answer("🎉 Все гайды пройдены. Доступен финальный тест.", reply_markup=kb_final_test())
+    else:
+        last = u.get("last_guide_sent_at")
+
+        # --- Ситуация 1: новичок только зарегистрировался ---
+        if not last and idx == 0:
             g = items[idx]
             await cb.message.answer(
-                f"Следующий гайд #{g['num']}: {g['title']}\n{g['url']}",
+                f"Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
                 reply_markup=kb_mark_read(g["id"])
             )
+
+    else:
+            # --- Ситуация 2: гайд уже выдавался сегодня ---
+            if _was_sent_today(u):
+                g = items[idx]
+                await cb.message.answer(
+                    f"Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
+                    reply_markup=kb_mark_read(g["id"])
+                )
+            else:
+                # --- Ситуация 3: гайд ещё не открыт (ждём 08:00 следующего дня) ---
+                await cb.message.answer("⏳ Следующий гайд будет доступен завтра после 08:00 МСК.")
+
     await cb.answer()
+
 
 @dp.callback_query(F.data == "newbie:schedule")
 async def newbie_schedule(cb: CallbackQuery):
@@ -781,6 +802,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
