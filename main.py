@@ -314,11 +314,11 @@ text = (
         f"Задание откроется только после отметки прочтения.\n"
         f"Сдать задание можно до <b>{DEADLINE_HOUR}:00 МСК</b>."
     )
-     await bot.send_message(uid, text, reply_markup=kb_mark_read(g["id"]))
-     u["last_guide_sent_at"] = _now_msk().isoformat()
-     save_users(USERS)
-     gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
-     gs_upsert_summary(uid, u)
+await bot.send_message(uid, text, reply_markup=kb_mark_read(g["id"]))
+u["last_guide_sent_at"] = _now_msk().isoformat()
+save_users(USERS)
+gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
+gs_upsert_summary(uid, u)
 
 async def _send_subject_task(uid: int, u: dict, guide: dict):
     """
@@ -799,6 +799,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
