@@ -463,10 +463,8 @@ async def guides_menu(cb: CallbackQuery):
             lines.append(f"• <b>{g['title']}</b> — {g['url']} (тест: {g.get('test_url','—')})")
         await cb.message.answer("⚡ Материалы для летников:\n\n" + "\n".join(lines))
     else:
-        # текущий/следующий гайд
-    else:
-    idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
+        idx = u.get("guide_index", 0)
+        items = GUIDES["newbie"]
 
     # все гайды пройдены
     if idx >= len(items):
@@ -802,6 +800,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
