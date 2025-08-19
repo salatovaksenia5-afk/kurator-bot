@@ -469,7 +469,7 @@ async def guides_menu(cb: CallbackQuery):
         else:
             g = items[idx]
             await cb.message.answer(
-                f"Следующий гайд #{g['num']}: <b>{g['title']}</b>\n{g['url']}",
+                f"Следующий гайд #{g['num']}: {g['title']}\n{g['url']}",
                 reply_markup=kb_mark_read(g["id"])
             )
     await cb.answer()
@@ -482,7 +482,7 @@ async def newbie_schedule(cb: CallbackQuery):
     left = max(0, total - idx)
     await cb.message.answer(
         f"🕗 Гайды приходят после 08:00 МСК.\n"
-        f"Осталось гайдов: <b>{left}</b>."
+        f"Осталось гайдов: {left}."
     )
     await cb.answer()
 
@@ -779,6 +779,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
