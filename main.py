@@ -457,51 +457,64 @@ async def progress_me(cb: CallbackQuery):
 async def guides_menu(cb: CallbackQuery):
     u = user(cb)
     if u.get("role") == "letnik":
-        # краткий список
+        # краткий список для летников
         lines = []
         for g in GUIDES["letnik"]:
             lines.append(f"• <b>{g['title']}</b> — {g['url']} (тест: {g.get('test_url','—')})")
         await cb.message.answer("⚡ Материалы для летников:\n\n" + "\n".join(lines))
-    else:
-        idx = u.get("guide_index", 0)
-        items = GUIDES["newbie"]
+        await cb.answer()
+        return
+
+    # новичок
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
 
     # все гайды пройдены
     if idx >= len(items):
         await cb.message.answer("🎉 Все гайды пройдены. Доступен финальный тест.", reply_markup=kb_final_test())
-    else:
-        last = u.get("last_guide_sent_at")
+        await cb.answer()
+        return
 
-        # --- Ситуация 1: новичок только зарегистрировался ---
-        if not last and idx == 0:
-            g = items[idx]
-            await cb.message.answer(
-                f"Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
-                reply_markup=kb_mark_read(g["id"])
-            )
-
-        else:     
-         if _was_sent_today(u):
-            g = items[idx]
-            await cb.message.answer(
-                    f"Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
-                    reply_markup=kb_mark_read(g["id"])
-                )
-
-    await cb.answer()
-
-
-@dp.callback_query(F.data == "newbie:schedule")
-async def newbie_schedule(cb: CallbackQuery):
-    u = user(cb)
-    idx = u.get("guide_index", 0)
-    total = len(GUIDES["newbie"])
-    left = max(0, total - idx)
+    # показываем текущий гайд
+    g = items[idx]
     await cb.message.answer(
-        f"🕗 Гайды приходят после 08:00 МСК.\n"
-        f"Осталось гайдов: {left}."
+        f"📘 Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
+        reply_markup=kb_mark_read(g["id"])
     )
     await cb.answer()
+
+
+
+async def scheduler_loop():
+    """
+    Планировщик:
+    1) В 14:00 и 22:00 напоминаем новичкам про дедлайн.
+    """
+    await asyncio.sleep(3)  # пауза после запуска
+
+    while True:
+        try:
+            now = _now_msk()
+
+            # 14:00 — напоминание новичкам о дедлайне
+            if now.time().hour == 14 and now.time().minute == 0:
+                for uid, u in USERS.items():
+                    if u.get("role") == "newbie":
+                        await bot.send_message(int(uid), "⏰ Напоминание: сдать задание сегодня до 22:00 МСК!")
+
+            # 22:00 — финальное напоминание (после дедлайна кнопка всё равно блокируется в _is_before_deadline)
+            if now.time().hour == 22 and now.time().minute == 0:
+                for uid, u in USERS.items():
+                    if u.get("role") == "newbie":
+                        await bot.send_message(int(uid), "⏰ Дедлайн наступил. Новые задания будут открыты только после отметки!")
+
+            await asyncio.sleep(60)  # проверяем раз в минуту
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print("scheduler loop err:", e)
+            await asyncio.sleep(5)
+
 
 # ============== ХЕНДЛЕРЫ: НОВИЧКИ (прочитал / задание / финал) ==============
 @dp.callback_query(F.data.startswith("newbie:read:"))
@@ -549,9 +562,11 @@ async def newbie_task_done(cb: CallbackQuery):
     guide_id = cb.data.split(":")[2]
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
+
     if idx >= len(items):
         await cb.answer("Все гайды уже пройдены.")
         return
+
     guide = items[idx]
     if guide["id"] != guide_id:
         await cb.answer("Это не текущий гайд.")
@@ -568,14 +583,24 @@ async def newbie_task_done(cb: CallbackQuery):
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Задание выполнено", f"guide={guide_id}")
     gs_upsert_summary(cb.from_user.id, u)
 
-    # после сдачи — фиксируем завершение текущего гайда (переход на следующий в следующий день в 8:00)
-    u["guide_index"] = min(u.get("guide_index", 0) + 1, len(GUIDES["newbie"]))
-    save_users(USERS)
-    gs_upsert_summary(cb.from_user.id, u)
+    # переход на следующий гайд или финальный тест
+    if idx < len(items) - 1:
+        u["guide_index"] = idx + 1
+        save_users(USERS)
+        gs_upsert_summary(cb.from_user.id, u)
 
-    await cb.message.answer("✅ Задание принято! Лови следующий гайд 👇")
-    await _send_newbie_guide(cb.from_user.id)
+        await cb.message.answer("✅ Задание принято! Лови следующий гайд 👇")
+        await _send_newbie_guide(cb.from_user.id)
+    else:
+        # последний гайд выполнен
+        u["guide_index"] = len(items)
+        save_users(USERS)
+        gs_upsert_summary(cb.from_user.id, u)
+
+        await cb.message.answer("🎉 Все гайды пройдены! Доступен финальный тест:", reply_markup=kb_final_test())
+
     await cb.answer()
+
 
 @dp.callback_query(F.data == "newbie:final")
 async def newbie_final_test(cb: CallbackQuery):
@@ -792,6 +817,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
