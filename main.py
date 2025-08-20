@@ -487,9 +487,6 @@ async def guides_menu(cb: CallbackQuery):
                     f"Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
                     reply_markup=kb_mark_read(g["id"])
                 )
-         else:
-                # --- Ситуация 3: гайд ещё не открыт (ждём 08:00 следующего дня) ---
-                await cb.message.answer("⏳ Следующий гайд будет доступен завтра после 08:00 МСК.")
 
     await cb.answer()
 
@@ -533,11 +530,6 @@ async def newbie_mark_read(cb: CallbackQuery):
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Отмечен прочитанным", f"guide={guide_id}")
     gs_upsert_summary(cb.from_user.id, u)
 
-    kb_task = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"newbie:task:{guide_id}")]
-    ])
-
-    await cb.message.answer("📖 Отмечено как прочитано. Теперь выполни задание и отметься:", reply_markup=kb_task)
 
     # при желании можно оставить и отправку самого задания
     await _send_subject_task(cb.from_user.id, u, guide)
@@ -581,7 +573,8 @@ async def newbie_task_done(cb: CallbackQuery):
     save_users(USERS)
     gs_upsert_summary(cb.from_user.id, u)
 
-    await cb.message.answer("✅ Задание принято! Следующий гайд придёт после 08:00 МСК завтра.")
+    await cb.message.answer("✅ Задание принято! Лови следующий гайд 👇")
+    await _send_newbie_guide(cb.from_user.id)
     await cb.answer()
 
 @dp.callback_query(F.data == "newbie:final")
@@ -799,6 +792,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
