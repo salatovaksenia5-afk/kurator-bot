@@ -769,7 +769,7 @@ async def scheduler_loop():
             if now.time().hour == 22 and now.time().minute == 0:
                 for uid, u in USERS.items():
                     if u.get("role") == "newbie":
-                        await bot.send_message(int(uid), "⏰ Дедлайн наступил. Новые задания — завтра после 08:00 МСК.")
+                        await bot.send_message(int(uid), "⏰ Дедлайн наступил! Постарайся сдавать до 22:00, чтобы быть в ритме обучения 😉.")
 
             await asyncio.sleep(60)  # проверяем раз в минуту
         except asyncio.CancelledError:
@@ -817,6 +817,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
