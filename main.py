@@ -374,30 +374,29 @@ async def _send_newbie_guide(uid: int):
     gs_upsert_summary(uid, u)
 
 
-async def _send_subject_task(uid: int, u: dict, guide: dict):
+async def _send_subject_task(uid: int, u: dict, guide: dict, cb: CallbackQuery):
     """
     Вызывается после отметки «прочитано».
     Если это 3-й гайд — выдаём предметное задание.
     Для остальных гайдов ничего не шлём.
-    
-"""
-# Если это текущий гайд, двигаем индекс
-idx = u.get("guide_index", 0)
-items = GUIDES["newbie"]
-current_guide = items[idx] if idx < len(items) else None
+    """
 
-if current_guide and current_guide["id"] == guide_id:
-    u["guide_index"] = idx + 1
-    save_users(USERS)
-    gs_upsert_summary(cb.from_user.id, u)
+    # Если это текущий гайд, двигаем индекс
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
+    current_guide = items[idx] if idx < len(items) else None
 
-    # Если это не гайд #3, сразу отправляем следующий гайд
-if guide.get("num") != 3:
-    await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
-    await _send_newbie_guide(cb.from_user.id)
-    
-    if guide.get("num") != 3:
-        return
+    if current_guide and current_guide["id"] == guide.get("id"):
+        u["guide_index"] = idx + 1
+        save_users(USERS)
+        gs_upsert_summary(cb.from_user.id, u)
+
+        # Если это не гайд #3, сразу отправляем следующий гайд
+        if guide.get("num") != 3:
+            await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
+            await _send_newbie_guide(cb.from_user.id)
+            return
+
 
     subj = (u.get("subject") or "").lower()
     task = SUBJECT_TASKS.get(subj, "Сделай предметное задание по третьему гайду и отправь результат.")
@@ -973,6 +972,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
