@@ -347,24 +347,21 @@ from aiogram import F
 # ====== Новичок: отправка следующего гайда ======
 async def _send_newbie_guide(uid: int):
     u = USERS.get(uid)
-    if not u:
-        return
     idx = u.get("guide_index", 0)
-    items = GUIDES.get("newbie", [])
+    items = GUIDES["newbie"]
     if idx >= len(items):
-        # Все гайды пройдены
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎓 Финальный тест", callback_data="newbie:final")]
-        ])
-        await u["chat"].send_message("🎉 Все гайды пройдены!", reply_markup=kb)
+        await bot.send_message(uid, "Все гайды пройдены! 🎉")
         return
 
     guide = items[idx]
-    text = f"📖 Гайд {guide.get('num')}: {guide.get('title')}\n\n{guide.get('text','')}"
+
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Отметить как прочитанный", callback_data=f"newbie:read:{guide['id']}")]
+        [InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")],
+        [InlineKeyboardButton("📝 Пройти тест", callback_data=f"newbie:testdone:{guide['id']}")]
     ])
-    await u["chat"].send_message(text, reply_markup=kb)
+
+    await bot.send_message(uid, f"📘 Гайд {guide['num']}: {guide['title']}", reply_markup=kb)
+
 
 
 # ====== Новичок: отметка прочитанного ======
@@ -427,6 +424,12 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
     ])
     text = f"📝 Предметное задание по гайду {guide.get('num')}:\n{guide.get('task','')}"
     await u["chat"].send_message(text, reply_markup=kb)
+    if current_guide.get("num") == 3:
+    # Не делаем return здесь, просто отправляем задание
+    await _send_subject_task(cb.from_user.id, u, current_guide)
+    await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
+    # Продолжаем и отправляем следующую кнопку для следующего гайда
+
 
 
 # ====== Новичок: отметка выполнения задания ======
@@ -1041,6 +1044,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
