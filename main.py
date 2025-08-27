@@ -341,69 +341,163 @@ def kb_newbie_test(guide: dict):
     )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram import F
 
+# ====== Новичок: отправка следующего гайда ======
 async def _send_newbie_guide(uid: int):
-    u = USERS.get(str(uid))
-    if not u or u.get("role") != "newbie":
+    u = USERS.get(uid)
+    if not u:
         return
-
     idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
-
+    items = GUIDES.get("newbie", [])
     if idx >= len(items):
-        # Все гайды пройдены — финальный тест
-        await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
-        await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
-        gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
+        # Все гайды пройдены
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🎓 Финальный тест", callback_data="newbie:final")]
+        ])
+        await u["chat"].send_message("🎉 Все гайды пройдены!", reply_markup=kb)
         return
 
-    g = items[idx]
-    text = (
-        f"📘 Сегодняшний гайд #{g['num']}: {g['title']}\n\n"
-        f"{g.get('text','')}\n"
-        f"Ссылка на материал: {g.get('url','—')}\n"
-        + (f"Ссылка на тест: {g.get('test_url','—')}\n\n" if g.get("test_url") else "\n")
-        + f"После прочтения нажми «Отметить прочитанным».\n"
-        f"Сдать задание можно до {DEADLINE_HOUR}:00 МСК."
-    )
-
-    await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
-    u["last_guide_sent_at"] = _now_msk().isoformat()
-    save_users(USERS)
-    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
-    gs_upsert_summary(uid, u)
+    guide = items[idx]
+    text = f"📖 Гайд {guide.get('num')}: {guide.get('title')}\n\n{guide.get('text','')}"
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Отметить как прочитанный", callback_data=f"newbie:read:{guide['id']}")]
+    ])
+    await u["chat"].send_message(text, reply_markup=kb)
 
 
-async def _send_subject_task(uid: int, u: dict, guide: dict, cb: CallbackQuery):
-    """
-    Вызывается после отметки «прочитано».
-    Если это 3-й гайд — выдаём предметное задание.
-    Для остальных гайдов ничего не шлём.
-    """
+# ====== Новичок: отметка прочитанного ======
+@dp.callback_query(F.data.startswith("newbie:read:"))
+async def newbie_mark_read(cb: CallbackQuery):
+    u = user(cb)
+    if u.get("role") != "newbie":
+        await cb.answer("Только для новичков", show_alert=True)
+        return
 
-    # Если это текущий гайд, двигаем индекс
+    guide_id = cb.data.split(":")[2]
+
     idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
-    current_guide = items[idx] if idx < len(items) else None
+    items = GUIDES.get("newbie", [])
+    if idx >= len(items):
+        await cb.answer("Все гайды уже пройдены.")
+        return
 
-    if current_guide and current_guide["id"] == guide.get("id"):
-        u["guide_index"] = idx + 1
-        save_users(USERS)
-        gs_upsert_summary(cb.from_user.id, u)
+    current_guide = items[idx]
+    if current_guide["id"] != guide_id:
+        await cb.answer("Это не текущий гайд.")
+        return
 
-        # Если это не гайд #3, сразу отправляем следующий гайд
-        if guide.get("num") != 3:
-            await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
-            await _send_newbie_guide(cb.from_user.id)
-            return
+    pr = u.setdefault("progress", {})
+    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st["read"] = True
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+
+    # Если это 3-й гайд — выдаём предметное задание
+    if current_guide.get("num") == 3:
+        # Отправка предметного задания
+        await _send_subject_task(uid, u, current_guide)
+        await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
+        return
+
+    # Продвигаем к следующему
+    u["guide_index"] = idx + 1
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+
+    await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
+    await _send_newbie_guide(uid)
+    await cb.answer()
 
 
-    subj = (u.get("subject") or "").lower()
-    task = SUBJECT_TASKS.get(subj, "Сделай предметное задание по третьему гайду и отправь результат.")
-    msg = f"🧩 Предметное задание к гайду #3 ({u.get('subject','—')}):\n\n{task}\n\nСдай до {DEADLINE_HOUR}:00."
-    kb = kb_task_button(guide["id"]) if _is_before_deadline() else None
-    await bot.send_message(uid, msg, reply_markup=kb)
-    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Задание выдано", f"guide_id={guide['id']}")
+# ====== Исправленный _send_subject_task ======
+async def _send_subject_task(uid: int, u: dict, guide: dict):
+    """
+    Вызывается после отметки «прочитано» для гайда №3.
+    Отправляет предметное задание.
+    """
+    # Проверяем, что гайд №3
+    if guide.get("num") != 3:
+        return
+
+    # Создаем клавиатуру для отметки задания
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Задание выполнено", callback_data=f"newbie:task:{guide['id']}")]
+    ])
+    text = f"📝 Предметное задание по гайду {guide.get('num')}:\n{guide.get('task','')}"
+    await u["chat"].send_message(text, reply_markup=kb)
+
+
+# ====== Новичок: отметка выполнения задания ======
+@dp.callback_query(F.data.startswith("newbie:task:"))
+async def newbie_task_done(cb: CallbackQuery):
+    u = user(cb)
+    if u.get("role") != "newbie":
+        await cb.answer("Только для новичков", show_alert=True)
+        return
+
+    guide_id = cb.data.split(":")[2]
+    idx = u.get("guide_index", 0)
+    items = GUIDES.get("newbie", [])
+    if idx >= len(items):
+        await cb.answer("Все гайды уже пройдены.")
+        return
+
+    current_guide = items[idx]
+    if current_guide["id"] != guide_id:
+        await cb.answer("Это не текущий гайд.")
+        return
+
+    pr = u.setdefault("progress", {})
+    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    if not st.get("read"):
+        await cb.answer("Сначала отметь, что прочитал гайд.", show_alert=True)
+        return
+
+    st["task_done"] = True
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+
+    # Продвигаем к следующему
+    u["guide_index"] = idx + 1
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+
+    if u["guide_index"] < len(items):
+        await cb.message.answer("✅ Задание принято! Лови следующий гайд 👇")
+        await _send_newbie_guide(uid)
+    else:
+        await cb.message.answer("🎉 Все гайды пройдены! Доступен финальный тест:", reply_markup=kb_final_test())
+
+    await cb.answer()
+
+
+# ====== Новичок: финальный тест ======
+@dp.callback_query(F.data == "newbie:final")
+async def newbie_final_test(cb: CallbackQuery):
+    u = user(cb)
+    if u.get("role") != "newbie":
+        await cb.answer("Только для новичков", show_alert=True)
+        return
+
+    await cb.message.answer("📝 Финальный тест: https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Я прошёл финальный тест", callback_data="newbie:final:done")]
+    ])
+    await cb.message.answer("Когда пройдёшь — нажми кнопку ниже.", reply_markup=kb)
+    await cb.answer()
+
+
+@dp.callback_query(F.data == "newbie:final:done")
+async def newbie_final_done(cb: CallbackQuery):
+    u = user(cb)
+    u["status"] = "Обучение завершено (новичок)"
+    u["finished_at"] = _now_msk().isoformat()
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+    await cb.message.answer("🎉 Поздравляем! Ты прошёл обучение. Добро пожаловать в команду!")
+    await cb.answer()
 
 
 
@@ -947,6 +1041,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
