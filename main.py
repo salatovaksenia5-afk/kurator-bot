@@ -231,8 +231,6 @@ def kb_main(role: str):
         [InlineKeyboardButton(text="📊 Мой прогресс", callback_data="progress:me")],
         [InlineKeyboardButton(text="📚 Каталог", callback_data="guides:menu")]
     ]
-    if role == "newbie":
-        rows.append([InlineKeyboardButton(text="🕗 Мой график гайдов", callback_data="newbie:schedule")])
     if role == "letnik":
         rows.append([InlineKeyboardButton(text="⚡ Все материалы и тесты", callback_data="letnik:all")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -466,15 +464,15 @@ async def progress_me(cb: CallbackQuery):
     done_tasks = sum(1 for v in u.get("progress", {}).values() if v.get("task_done"))
     done_tests = sum(1 for v in u.get("progress", {}).values() if v.get("test_done"))
     text = (
-        f"📊 Твой прогресс\n\n"
-        f"ФИО: {u.get('fio','—')}\n",
-        f"Роль: {role}\n", 
-        f"Предмет: {subj}\n",
-        f"Текущий гайд (новичок): {idx}/{len(GUIDES['newbie'])}\n", 
-        f"Выполнено заданий: {done_tasks}\n",
-        f"Пройдено тестов: {done_tests}\n", 
-    )
-    await cb.message.answer(text)
+    f"📊 Твой прогресс\n\n"
+    f"ФИО: {u.get('fio','—')}\n"
+    f"Роль: {role}\n"
+    f"Предмет: {subj}\n"
+    f"Текущий гайд (новичок): {idx}/{len(GUIDES['newbie'])}\n"
+    f"Выполнено заданий: {done_tasks}\n"
+    f"Пройдено тестов: {done_tests}\n"
+)
+await cb.message.answer(text)
     await cb.answer()
 
 @dp.callback_query(F.data == "guides:menu")
@@ -876,6 +874,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
