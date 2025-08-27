@@ -463,16 +463,20 @@ async def progress_me(cb: CallbackQuery):
     total = len(items)
     done_tasks = sum(1 for v in u.get("progress", {}).values() if v.get("task_done"))
     done_tests = sum(1 for v in u.get("progress", {}).values() if v.get("test_done"))
+
+    # ✅ ВОТ ТАК должно быть
     text = (
-    f"📊 Твой прогресс\n\n"
-    f"ФИО: {u.get('fio','—')}\n"
-    f"Роль: {role}\n"
-    f"Предмет: {subj}\n"
-    f"Текущий гайд (новичок): {idx}/{len(GUIDES['newbie'])}\n"
-    f"Выполнено заданий: {done_tasks}\n"
-    f"Пройдено тестов: {done_tests}\n"
-)
-await cb.message.answer(text)
+        f"📊 Твой прогресс\n\n"
+        f"ФИО: {u.get('fio','—')}\n"
+        f"Роль: {role}\n"
+        f"Предмет: {subj}\n"
+        f"Текущий гайд (новичок): {idx}/{len(GUIDES['newbie'])}\n"
+        f"Выполнено заданий: {done_tasks}\n"
+        f"Пройдено тестов: {done_tests}\n"
+    )
+    await cb.message.answer(text)
+    await cb.answer()
+
 
 @dp.callback_query(F.data == "guides:menu")
 async def guides_menu(cb: CallbackQuery):
@@ -873,6 +877,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
