@@ -392,9 +392,9 @@ if current_guide and current_guide["id"] == guide_id:
     gs_upsert_summary(cb.from_user.id, u)
 
     # Если это не гайд #3, сразу отправляем следующий гайд
-    if guide.get("num") != 3:
-        await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
-        await _send_newbie_guide(cb.from_user.id)
+if guide.get("num") != 3:
+    await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
+    await _send_newbie_guide(cb.from_user.id)
     
     if guide.get("num") != 3:
         return
@@ -973,6 +973,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
