@@ -35,11 +35,20 @@ REMIND_HOURS = [14, 22]  # напоминания новичкам
 DEADLINE_HOUR = 22       # после 22:00 «Я выполнил задание» закрывается
 GUIDE_HOUR = 8           # в 08:00 выдаем следующий гайд новичкам
 
+import os
+
 DATA_DIR = "data"
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 GUIDES_FILE = os.path.join(DATA_DIR, "guides.json")
 os.makedirs(DATA_DIR, exist_ok=True)
+
+# ======= ЧИСТЫЙ СТАРТ (только выбранные файлы) =======
+for f in [USERS_FILE, GUIDES_FILE]:
+    if os.path.exists(f):
+        os.remove(f)
+
 user_data = {}  # словарь для хранения данных пользователей
+
 
 
 # ============== GOOGLE SHEETS ==============
@@ -934,6 +943,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
