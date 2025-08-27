@@ -181,48 +181,50 @@ def load_guides():
     data = _read_json(GUIDES_FILE, {})
     if not data:
         data = {
- },        
-GUIDES = {         # Новички — 4 гайда (пример), 3-й с предметной задачей
-    "newbie": [
-        {
-            "id": "guide1",
-            "num": 1,
-            "title": "Первый гайд",
-            "text": "Тут текст гайда",
-            "test_url": "https://forms.gle/abc111"   # 🔗 ссылка на тест для первого
-        },
-        {
-            "id": "guide2",
-            "num": 2,
-            "title": "Второй гайд",
-            "text": "Тут текст гайда",
-            "test_url": "https://forms.gle/xyz222"   # 🔗 ссылка на тест для второго
-        },
-        {
-            "id": "guide3",
-            "num": 3,
-            "title": "Третий гайд",
-            "text": "Тут текст гайда"
-           
-        },
-        {
-            "id": "guide4",
-            "num": 4,
-            "title": "Четвертый гайд",
-            "text": "Тут текст гайда",
-            "test_url": "https://forms.gle/xyz222"   # 🔗 ссылка на тест для второго
-        }
-    ],
-            # Летники — высылаем всё сразу (пример наполнения)
-    "letnik": [
-                {"id": "l1", "title": "Летник 1", "url": "https://example.com/l1", "test_url": "https://example.com/lt1test"},
-                {"id": "l2", "title": "Летник 2", "url": "https://example.com/l2", "test_url": "https://example.com/lt2test"},
-                {"id": "l3", "title": "Летник 3", "url": "https://example.com/l3", "test_url": "https://example.com/lt3test"},
+            "newbie": [
+                {
+                    "id": "guide1",
+                    "num": 1,
+                    "title": "Первый гайд",
+                    "text": "Тут текст гайда",
+                    "url": "https://example.com/guide1",
+                    "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
+                },
+                {
+                    "id": "guide2",
+                    "num": 2,
+                    "title": "Второй гайд",
+                    "text": "Тут текст гайда",
+                    "url": "https://example.com/guide2",
+                    "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"
+                },
+                {
+                    "id": "guide3",
+                    "num": 3,
+                    "title": "Третий гайд",
+                    "text": "Тут текст гайда",
+                    "url": "https://example.com/guide3"
+                },
+                {
+                    "id": "guide4",
+                    "num": 4,
+                    "title": "Четвёртый гайд",
+                    "text": "Тут текст гайда",
+                    "url": "https://example.com/guide4",
+                    "test_url": "https://forms.gle/xyz222"
+                }
+            ],
+            "letnik": [
+                {"id": "l1", "title": "Летник 1", "url": "https://example.com/l1", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"},
+                {"id": "l2", "title": "Летник 2", "url": "https://example.com/l2", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"},
+                {"id": "l3", "title": "Летник 3", "url": "https://example.com/l3", "test_url": "https://example.com/lt3test"}
             ],
             "subjects": ["математика", "информатика", "физика", "русский язык", "обществознание", "биология", "химия"]
         }
-_write_json(GUIDES_FILE, data)
-return data
+        # сохраняем начальные гайды в файл, чтобы не ругались при следующем запуске
+        _write_json(GUIDES_FILE, data)
+    return data
+
 
 USERS = load_users()
 GUIDES = load_guides()
@@ -332,16 +334,29 @@ async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u or u.get("role") != "newbie":
         return
+
     idx = u.get("guide_index", 0)
-    u["last_guide_sent_at"] = None  # сбрасываем, чтобы scheduler утром выдал новый
-    save_users(USERS)
     items = GUIDES["newbie"]
     if idx >= len(items):
-        # Все гайды пройдены — финальный тест (однократно)
         await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
         await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
         gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
         return
+
+    g = items[idx]
+    text = (
+        f"📘 Сегодняшний гайд #{g['num']}: {g['title']}\n\n"
+        f"{g.get('text','')}\n"
+        f"Ссылка на тест: {g.get('test_url','—')}\n\n"
+        f"После прочтения нажми «Отметить прочитанным».\n"
+        f"Сдать задание можно до {DEADLINE_HOUR}:00 МСК."
+    )
+    await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
+    u["last_guide_sent_at"] = _now_msk().isoformat()
+    save_users(USERS)
+    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
+    gs_upsert_summary(uid, u)
+
 
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
@@ -933,6 +948,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
