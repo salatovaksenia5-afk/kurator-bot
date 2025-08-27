@@ -290,8 +290,8 @@ def kb_final_test():
 # ============== УТИЛИТЫ ==============
 def user(obj: Message | CallbackQuery) -> dict:
     uid = obj.from_user.id
-    if str(uid) not in USERS:
-        USERS[str(uid)] = {
+    if str((cb.from_user.id)) not in USERS:
+        USERS[str((cb.from_user.id))] = {
             "fio": None,
             "role": None,
             "subject": None,
@@ -306,7 +306,7 @@ def user(obj: Message | CallbackQuery) -> dict:
             "awaiting_code": False
         }
         save_users(USERS)
-    return USERS[str(uid)]
+    return USERS[str(cb.from_user.id)]
 
 def _today_iso():
     return _now_msk().date().isoformat()
@@ -350,18 +350,16 @@ async def _send_newbie_guide(uid: int):
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
     if idx >= len(items):
-        await bot.send_message(uid, "Все гайды пройдены! 🎉")
+        await bot.send_message(cb.from_user.id, "Все гайды пройдены! 🎉")
         return
 
     guide = items[idx]
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")],
-        [InlineKeyboardButton("📝 Пройти тест", callback_data=f"newbie:testdone:{guide['id']}")]
-    ])
-
-    await bot.send_message(uid, f"📘 Гайд {guide['num']}: {guide['title']}", reply_markup=kb)
-
+    [InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")],
+    [InlineKeyboardButton("📝 Пройти тест", callback_data=f"newbie:testdone:{guide['id']}")]
+])
+await bot.send_message(cb.from_user.id, f"📘 Гайд {guide['num']}: {guide['title']}", reply_markup=kb)
 
 
 # ====== Новичок: отметка прочитанного ======
@@ -404,7 +402,7 @@ async def newbie_mark_read(cb: CallbackQuery):
     gs_upsert_summary(cb.from_user.id, u)
 
     await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
-    await _send_newbie_guide(uid)
+    await _send_newbie_guide(cb.from_user.id)
     await cb.answer()
 
 
@@ -1044,6 +1042,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
