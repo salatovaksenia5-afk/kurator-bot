@@ -359,14 +359,12 @@ async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u or u.get("role") != "newbie":
         return
-    kb = kb_newbie_test(guide)   # ← вот эта строка должна быть
-    await bot.send_message(uid, text, reply_markup=kb)
+
     idx = u.get("guide_index", 0)
-    u["last_guide_sent_at"] = None  # сбрасываем, чтобы scheduler утром выдал новый
-    save_users(USERS)
     items = GUIDES["newbie"]
+
     if idx >= len(items):
-        # Все гайды пройдены — финальный тест (однократно)
+        # Все гайды пройдены — финальный тест
         await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
         await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
         gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
@@ -374,18 +372,20 @@ async def _send_newbie_guide(uid: int):
 
     g = items[idx]
     text = (
-        f"📘 Сегодняшний гайд #{g['num']}: {g['title']}\n"
-        f"Ссылка: {g['url']}\n\n"
-        f"После прочтения нажми «Отметить прочитанным».\n"
-        f"Задание и тест откроются только после отметки прочтения.\n"
+        f"📘 Сегодняшний гайд #{g['num']}: {g['title']}\n\n"
+        f"{g.get('text','')}\n"
+        f"Ссылка на материал: {g.get('url','—')}\n"
+        + (f"Ссылка на тест: {g.get('test_url','—')}\n\n" if g.get("test_url") else "\n")
+        + f"После прочтения нажми «Отметить прочитанным».\n"
         f"Сдать задание можно до {DEADLINE_HOUR}:00 МСК."
     )
-    # 👉 Здесь как раз await внутри функции!
+
     await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
     u["last_guide_sent_at"] = _now_msk().isoformat()
     save_users(USERS)
     gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
     gs_upsert_summary(uid, u)
+
 
 
 async def _send_subject_task(uid: int, u: dict, guide: dict):
@@ -945,6 +945,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
