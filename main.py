@@ -328,11 +328,11 @@ async def _send_newbie_guide(uid: int):
 
     g = items[idx]
     text = (
-        f"📘 Сегодняшний гайд #{g['num']}: <b>{g['title']}</b>\n"
+        f"📘 Сегодняшний гайд #{g['num']}: {g['title']}\n"
         f"Ссылка: {g['url']}\n\n"
         f"После прочтения нажми «Отметить прочитанным».\n"
         f"Задание и тест откроются только после отметки прочтения.\n"
-        f"Сдать задание можно до <b>{DEADLINE_HOUR}:00 МСК</b>."
+        f"Сдать задание можно до {DEADLINE_HOUR}:00 МСК."
     )
     # 👉 Здесь как раз await внутри функции!
     await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
@@ -485,7 +485,7 @@ async def guides_menu(cb: CallbackQuery):
         # краткий список для летников
         lines = []
         for g in GUIDES["letnik"]:
-            lines.append(f"• <b>{g['title']}</b> — {g['url']} (тест: {g.get('test_url','—')})")
+            lines.append(f"• {g['title']} — {g['url']} (тест: {g.get('test_url','—')})")
         await cb.message.answer("⚡ Материалы для летников:\n\n" + "\n".join(lines))
         await cb.answer()
         return
@@ -531,7 +531,7 @@ async def scheduler_loop():
             if now.time().hour == 22 and now.time().minute == 0:
                 for uid, u in USERS.items():
                     if u.get("role") == "newbie":
-                        await bot.send_message(int(uid), "⏰ Дедлайн наступил. Новые задания будут открыты только после отметки!")
+                        await bot.send_message(int(uid), "⏰ Дедлайн наступил. Постарайся сдавать вовремя)!")
 
             await asyncio.sleep(60)  # проверяем раз в минуту
         except asyncio.CancelledError:
@@ -633,10 +633,7 @@ async def newbie_task_done(cb: CallbackQuery):
     if u.get("role") != "newbie":
         await cb.answer("Только для новичков", show_alert=True)
         return
-    if not _is_before_deadline():
-        await cb.answer("Дедлайн истёк. Задание можно было сдать до 22:00 МСК.", show_alert=True)
-        return
-
+ 
     guide_id = cb.data.split(":")[2]
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
@@ -895,6 +892,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
