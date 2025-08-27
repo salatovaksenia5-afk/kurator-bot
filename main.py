@@ -289,9 +289,9 @@ def kb_final_test():
 
 # ============== УТИЛИТЫ ==============
 def user(obj: Message | CallbackQuery) -> dict:
-    uid = obj.from_user.id
-    if str(obj.from_user.id) not in USERS:
-        USERS[str((cb.from_user.id))] = {
+    uid = str(obj.from_user.id)  # получаем id пользователя как строку
+    if uid not in USERS:
+        USERS[uid] = {
             "fio": None,
             "role": None,
             "subject": None,
@@ -306,7 +306,8 @@ def user(obj: Message | CallbackQuery) -> dict:
             "awaiting_code": False
         }
         save_users(USERS)
-    return USERS[str(cb.from_user.id)]
+    return USERS[uid]
+
 
 def _today_iso():
     return _now_msk().date().isoformat()
@@ -989,6 +990,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
