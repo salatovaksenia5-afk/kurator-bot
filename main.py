@@ -181,6 +181,7 @@ def load_guides():
     data = _read_json(GUIDES_FILE, {})
     if not data:
         data = {
+ },        
  GUIDES = {         # Новички — 4 гайда (пример), 3-й с предметной задачей
     "newbie": [
         {
@@ -933,6 +934,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
