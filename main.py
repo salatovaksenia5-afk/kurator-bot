@@ -743,41 +743,52 @@ async def letnik_all(cb: CallbackQuery):
         await cb.answer("Доступно только летникам", show_alert=True)
         return
 
-    # отправляем материалы с кнопками: открыть материал, открыть тест, отметить тест пройденным
+    # один список материалов без кнопок
     lines = ["⚡ Все материалы для летников:"]
     for g in GUIDES["letnik"]:
         lines.append(f"• <b>{g['title']}</b> — {g['url']}")
     await cb.message.answer("\n".join(lines))
 
-    for g in GUIDES["letnik"]:
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📖 Открыть материал", url=g["url"])],
-            [InlineKeyboardButton(text="📝 Открыть тест", url=g.get("test_url","https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header"))],
-            [InlineKeyboardButton(text="✅ Отметить тест пройденным", callback_data=f"letnik:testdone:{g['id']}")]
-        ])
-        await cb.message.answer(f"<b>{g['title']}</b>", reply_markup=kb)
+    # добавляем только финальный тест
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 Пройти финальный тест", callback_data="letnik:final")]
+    ])
+    await cb.message.answer("Когда изучишь материалы — пройди финальный тест:", reply_markup=kb)
 
     gs_log_event(cb.from_user.id, u.get("fio",""), "letnik", u.get("subject",""), "Выданы материалы летнику")
     await cb.answer()
 
 
-@dp.callback_query(F.data.startswith("letnik:testdone:"))
-async def letnik_test_done(cb: CallbackQuery):
+@dp.callback_query(F.data == "letnik:final")
+async def letnik_final(cb: CallbackQuery):
     u = user(cb)
     if u.get("role") != "letnik":
         await cb.answer("Только для летников", show_alert=True)
         return
 
-    guide_id = cb.data.split(":")[2]
-    pr = u.setdefault("progress", {})
-    st = pr.setdefault(guide_id, {"read": True, "task_done": True, "test_done": False})
-    st["test_done"] = True
+    # выдаём ссылку на финальный тест
+    await cb.message.answer("📝 Финальный тест для летников: https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header")
+
+    # кнопка «Я прошёл финальный тест»
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Я прошёл финальный тест", callback_data="letnik:final:done")]
+    ])
+    await cb.message.answer("Когда пройдёшь — нажми кнопку ниже.", reply_markup=kb)
+    await cb.answer()
+
+
+@dp.callback_query(F.data == "letnik:final:done")
+async def letnik_final_done(cb: CallbackQuery):
+    u = user(cb)
+    u["status"] = "Обучение завершено (летник)"
+    u["finished_at"] = _now_msk().isoformat()
     save_users(USERS)
-    gs_log_event(cb.from_user.id, u.get("fio",""), "letnik", u.get("subject",""), "Тест пройден (летник)", f"guide={guide_id}")
+    gs_log_event(cb.from_user.id, u.get("fio",""), "letnik", u.get("subject",""), "Финальный тест пройден (летник)")
     gs_upsert_summary(cb.from_user.id, u)
 
-    await cb.message.answer("✅ Тест отмечен как пройденный.")
+    await cb.message.answer("🎉 Поздравляем! Ты прошёл обучение как летник. Добро пожаловать в команду!")
     await cb.answer()
+
 
 # ============== КОМАНДЫ АДМИНА ==============
 @dp.message(Command("admin"))
@@ -923,6 +934,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
