@@ -184,7 +184,7 @@ def load_guides():
             # Новички — 4 гайда (пример), 3-й с предметной задачей
            "newbie": [
                 {"id": "n1", "num": 1, "title": "Гайд 1", "url": "https://docs.google.com/document/d/1KtiDdFpNnUQRI1c6VS-6JjZk8mDCbpUiGvngjl7TqSg/edit?usp=sharing", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"},
-                {"id": "n2", "num": 2, "title": "Гайд 2", "url": "https://example.com/n2", "test_url": "https://example.com/n2test"},
+                {"id": "n2", "num": 2, "title": "Гайд 2", "url": "https://example.com/n2", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"},
                 {"id": "n3", "num": 3, "title": "Гайд 3", "url": "https://example.com/n3", "test_url": "https://example.com/n3test"},
                 {"id": "n4", "num": 4, "title": "Гайд 4", "url": "https://example.com/n4"},
             ],
@@ -354,7 +354,7 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
         task = SUBJECT_TASKS.get(subj, "Сделай предметное задание по третьему гайду и отправь результат.")
         msg = f"🧩 Предметное задание к гайду #3 ({u.get('subject','—')}):\n\n{task}\n\nСдай до {DEADLINE_HOUR}:00."
     else:
-        msg = "🧩 Задание к гайду: выполни практику и отметь выполнение до дедлайна."
+        msg = "🧩 https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
     kb = kb_task_button(guide["id"]) if _is_before_deadline() else None
     await bot.send_message(uid, msg, reply_markup=kb)
     gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Задание выдано", f"guide_id={guide['id']}")
@@ -895,6 +895,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
