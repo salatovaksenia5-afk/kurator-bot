@@ -182,12 +182,38 @@ def load_guides():
     if not data:
         data = {
             # Новички — 4 гайда (пример), 3-й с предметной задачей
-           "newbie": [
-                {"id": "n1", "num": 1, "title": "Гайд 1", "url": "https://docs.google.com/document/d/1KtiDdFpNnUQRI1c6VS-6JjZk8mDCbpUiGvngjl7TqSg/edit?usp=sharing", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"},
-                {"id": "n2", "num": 2, "title": "Гайд 2", "url": "https://example.com/n2", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"},
-                {"id": "n3", "num": 3, "title": "Гайд 3", "url": "https://example.com/n3", "test_url": "https://example.com/n3test"},
-                {"id": "n4", "num": 4, "title": "Гайд 4", "url": "https://example.com/n4"},
-            ],
+          GUIDES = {
+    "newbie": [
+        {
+            "id": "guide1",
+            "num": 1,
+            "title": "Первый гайд",
+            "text": "Тут текст гайда",
+            "test_url": "https://forms.gle/abc111"   # 🔗 ссылка на тест для первого
+        },
+        {
+            "id": "guide2",
+            "num": 2,
+            "title": "Второй гайд",
+            "text": "Тут текст гайда",
+            "test_url": "https://forms.gle/xyz222"   # 🔗 ссылка на тест для второго
+        },
+        {
+            "id": "guide3",
+            "num": 3,
+            "title": "Третий гайд",
+            "text": "Тут текст гайда"
+           
+        },
+        {
+            "id": "guide4",
+            "num": 4,
+            "title": "Четвертый гайд",
+            "text": "Тут текст гайда",
+            "test_url": "https://forms.gle/xyz222"   # 🔗 ссылка на тест для второго
+        },
+    ]
+}
             # Летники — высылаем всё сразу (пример наполнения)
             "letnik": [
                 {"id": "l1", "title": "Летник 1", "url": "https://example.com/l1", "test_url": "https://example.com/lt1test"},
@@ -288,14 +314,21 @@ def _was_sent_today(u: dict) -> bool:
     except Exception:
         return False
 def kb_newbie_test(guide: dict):
-    buttons = [
-        [InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")]
-    ]
-    if guide.get("test_url"):
-        buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=guide["test_url"])])
-        buttons.append([InlineKeyboardButton(text="✅ Отметить тест пройденным", callback_data=f"newbie:testdone:{guide['id']}")])
+    buttons = []
+    if guide.get("test_url"):   # если есть ссылка на тест
+        buttons.append([InlineKeyboardButton(
+            text="📝 Пройти тест", 
+            url=guide["test_url"]
+        )])
+        buttons.append([InlineKeyboardButton(
+            text="✅ Отметить тест пройденным", 
+            callback_data=f"newbie:testdone:{guide['id']}"
+        )])
+    buttons.append([InlineKeyboardButton(
+        text="📖 Отметить прочитанным", 
+        callback_data=f"newbie:read:{guide['id']}"
+    )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u or u.get("role") != "newbie":
@@ -315,6 +348,8 @@ async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u or u.get("role") != "newbie":
         return
+    kb = kb_newbie_test(guide)   # ← вот эта строка должна быть
+    await bot.send_message(uid, text, reply_markup=kb)
     idx = u.get("guide_index", 0)
     u["last_guide_sent_at"] = None  # сбрасываем, чтобы scheduler утром выдал новый
     save_users(USERS)
@@ -899,6 +934,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
