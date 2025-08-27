@@ -379,7 +379,23 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
     Вызывается после отметки «прочитано».
     Если это 3-й гайд — выдаём предметное задание.
     Для остальных гайдов ничего не шлём.
-    """
+    
+"""
+# Если это текущий гайд, двигаем индекс
+idx = u.get("guide_index", 0)
+items = GUIDES["newbie"]
+current_guide = items[idx] if idx < len(items) else None
+
+if current_guide and current_guide["id"] == guide_id:
+    u["guide_index"] = idx + 1
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+
+    # Если это не гайд #3, сразу отправляем следующий гайд
+    if guide.get("num") != 3:
+        await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
+        await _send_newbie_guide(cb.from_user.id)
+    
     if guide.get("num") != 3:
         return
 
@@ -613,25 +629,22 @@ async def newbie_test_done(cb: CallbackQuery):
     st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     st["test_done"] = True
     save_users(USERS)
-    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден (новичок)", f"guide={guide_id}")
+    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден", f"guide={guide_id}")
     gs_upsert_summary(cb.from_user.id, u)
 
-    # Если это текущий гайд и он НЕ #3 — двигаем пользователя дальше сразу
+    # Автоматический переход
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
-    if idx < len(items):
-        current = items[idx]
-        if current.get("id") == guide_id and current.get("num") != 3:
-            u["guide_index"] = idx + 1
-            save_users(USERS)
-            gs_upsert_summary(cb.from_user.id, u)
-            await cb.message.answer("✅ Тест принят! Лови следующий гайд 👇")
-            await _send_newbie_guide(cb.from_user.id)
-            await cb.answer()
-            return
-
-    await cb.message.answer("✅ Тест отмечен как пройденный.")
+    if idx < len(items) and items[idx]["id"] == guide_id:
+        u["guide_index"] = idx + 1
+        save_users(USERS)
+        gs_upsert_summary(cb.from_user.id, u)
+        await cb.message.answer("✅ Тест отмечен как пройденный. Лови следующий гайд 👇")
+        await _send_newbie_guide(cb.from_user.id)
+    else:
+        await cb.message.answer("✅ Тест отмечен как пройденный.")
     await cb.answer()
+
 
 
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
@@ -943,6 +956,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
