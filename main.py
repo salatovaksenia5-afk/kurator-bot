@@ -203,7 +203,8 @@ def load_guides():
                     "num": 3,
                     "title": "Третий гайд",
                     "text": "Тут текст гайда",
-                    "url": "https://example.com/guide3"
+                    "url": "https://example.com/guide3",
+                    "test_url": "https://example.com/guide1"
                 },
                 {
                     "id": "guide4",
@@ -330,10 +331,6 @@ def kb_newbie_test(guide: dict):
         callback_data=f"newbie:read:{guide['id']}"
     )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
-async def _send_newbie_guide(uid: int):
-    u = USERS.get(str(uid))
-    if not u or u.get("role") != "newbie":
-        return
 
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
@@ -948,6 +945,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
