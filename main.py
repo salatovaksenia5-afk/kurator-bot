@@ -289,6 +289,14 @@ def _was_sent_today(u: dict) -> bool:
         return dt.date() == _now_msk().date()
     except Exception:
         return False
+def kb_newbie_test(guide: dict):
+    buttons = [
+        [InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")]
+    ]
+    if guide.get("test_url"):
+        buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=guide["test_url"])])
+        buttons.append([InlineKeyboardButton(text="✅ Отметить тест пройденным", callback_data=f"newbie:testdone:{guide['id']}")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
@@ -304,13 +312,6 @@ async def _send_newbie_guide(uid: int):
         await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
         gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
         return
-def kb_newbie_test(guide: dict):
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")],
-        [InlineKeyboardButton(text="📝 Пройти тест", url=guide.get("test_url", ""))],
-        [InlineKeyboardButton(text="✅ Отметить тест пройденным", callback_data=f"newbie:testdone:{guide['id']}")]
-    ])
-
 
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
@@ -547,6 +548,23 @@ async def newbie_mark_read(cb: CallbackQuery):
         await cb.answer("Только для новичков", show_alert=True)
         return
     guide_id = cb.data.split(":")[2]
+@dp.callback_query(F.data.startswith("newbie:testdone:"))
+async def newbie_test_done(cb: CallbackQuery):
+    u = user(cb)
+    if u.get("role") != "newbie":
+        await cb.answer("Только для новичков", show_alert=True)
+        return
+
+    guide_id = cb.data.split(":")[2]
+    pr = u.setdefault("progress", {})
+    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st["test_done"] = True
+    save_users(USERS)
+    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден (новичок)", f"guide={guide_id}")
+    gs_upsert_summary(cb.from_user.id, u)
+
+    await cb.message.answer("✅ Тест отмечен как пройденный.")
+    await cb.answer()
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
@@ -858,6 +876,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
