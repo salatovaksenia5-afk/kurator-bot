@@ -577,8 +577,7 @@ async def newbie_test_done(cb: CallbackQuery):
 
     guide_id = cb.data.split(":")[2]
     pr = u.setdefault("progress", {})
-    st = pr.
-    setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     st["test_done"] = True
     save_users(USERS)
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден (новичок)", f"guide={guide_id}")
@@ -900,6 +899,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
