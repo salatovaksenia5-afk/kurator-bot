@@ -221,8 +221,8 @@ GUIDES = {         # Новички — 4 гайда (пример), 3-й с п�
             ],
             "subjects": ["математика", "информатика", "физика", "русский язык", "обществознание", "биология", "химия"]
         }
-    _write_json(GUIDES_FILE, data)
-    return data
+_write_json(GUIDES_FILE, data)
+return data
 
 USERS = load_users()
 GUIDES = load_guides()
@@ -933,6 +933,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
