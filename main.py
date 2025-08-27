@@ -359,7 +359,7 @@ async def _send_newbie_guide(uid: int):
     [InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")],
     [InlineKeyboardButton("📝 Пройти тест", callback_data=f"newbie:testdone:{guide['id']}")]
 ])
-await bot.send_message(cb.from_user.id, f"📘 Гайд {guide['num']}: {guide['title']}", reply_markup=kb)
+    await bot.send_message(cb.from_user.id, f"📘 Гайд {guide['num']}: {guide['title']}", reply_markup=kb)
 
 
 # ====== Новичок: отметка прочитанного ======
@@ -1042,6 +1042,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
