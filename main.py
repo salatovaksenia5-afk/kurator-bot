@@ -335,10 +335,10 @@ def kb_newbie_test(guide: dict):
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
     if idx >= len(items):
-        await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
-        await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
-        gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
-        return
+    await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
+    await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
+    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
+    return
 
     g = items[idx]
     text = (
@@ -944,6 +944,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
