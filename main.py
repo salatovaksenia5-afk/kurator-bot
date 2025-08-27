@@ -354,7 +354,7 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
         task = SUBJECT_TASKS.get(subj, "Сделай предметное задание по третьему гайду и отправь результат.")
         msg = f"🧩 Предметное задание к гайду #3 ({u.get('subject','—')}):\n\n{task}\n\nСдай до {DEADLINE_HOUR}:00."
     else:
-        msg = "🧩 https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
+        msg = "🧩"
     kb = kb_task_button(guide["id"]) if _is_before_deadline() else None
     await bot.send_message(uid, msg, reply_markup=kb)
     gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Задание выдано", f"guide_id={guide['id']}")
@@ -591,17 +591,7 @@ async def newbie_test_done(cb: CallbackQuery):
         await cb.answer("Только для новичков", show_alert=True)
         return
 
-    guide_id = cb.data.split(":")[2]
-    pr = u.setdefault("progress", {})
-    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
-    st["test_done"] = True
-    save_users(USERS)
-    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден (новичок)", f"guide={guide_id}")
-    gs_upsert_summary(cb.from_user.id, u)
-
-    await cb.message.answer("✅ Тест отмечен как пройденный.")
-    await cb.answer()
-
+    
     # найдём объект гайда по guide_index
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
@@ -892,6 +882,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
