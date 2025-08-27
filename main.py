@@ -182,7 +182,7 @@ def load_guides():
     if not data:
         data = {
  },        
- GUIDES = {         # Новички — 4 гайда (пример), 3-й с предметной задачей
+GUIDES = {         # Новички — 4 гайда (пример), 3-й с предметной задачей
     "newbie": [
         {
             "id": "guide1",
@@ -934,6 +934,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
