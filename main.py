@@ -387,14 +387,12 @@ async def _send_newbie_guide(uid: int):
     gs_upsert_summary(uid, u)
 
 
-
 async def _send_subject_task(uid: int, u: dict, guide: dict):
     """
     Вызывается после отметки «прочитано».
     Если это 3-й гайд — выдаём предметное задание.
     Для остальных гайдов ничего не шлём.
     """
-    # Отправляем предметное задание только для гайда №3
     if guide.get("num") != 3:
         return
 
@@ -404,6 +402,7 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
     kb = kb_task_button(guide["id"]) if _is_before_deadline() else None
     await bot.send_message(uid, msg, reply_markup=kb)
     gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Задание выдано", f"guide_id={guide['id']}")
+
 
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
 @dp.message(CommandStart())
@@ -945,6 +944,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
