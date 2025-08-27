@@ -591,6 +591,7 @@ async def scheduler_loop():
 
 
 # ============== ХЕНДЛЕРЫ: НОВИЧКИ (прочитал / задание / финал) ==============
+# ====== Новичок: отметка прочитанного ======
 @dp.callback_query(F.data.startswith("newbie:read:"))
 async def newbie_mark_read(cb: CallbackQuery):
     u = user(cb)
@@ -600,21 +601,41 @@ async def newbie_mark_read(cb: CallbackQuery):
 
     guide_id = cb.data.split(":")[2]
 
-    # Отмечаем прочтение в прогрессе по id гайда
+    # Получаем текущий гайд
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
+    if idx >= len(items):
+        await cb.answer("Все гайды уже пройдены.")
+        return
+
+    current_guide = items[idx]
+    if current_guide["id"] != guide_id:
+        await cb.answer("Это не текущий гайд.")
+        return
+
+    # Отмечаем прочтение
     pr = u.setdefault("progress", {})
     st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     st["read"] = True
     save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+    gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Гайд прочитан", f"guide={guide_id}")
 
-    gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Отмечен прочитанным", f"guide={guide_id}")
+    # Если это 3-й гайд — выдаём предметное задание
+    if current_guide.get("num") == 3:
+        await _send_subject_task(cb.from_user.id, u, current_guide)
+        await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
+        return
+
+    # Для остальных гайдов: продвигаем пользователя к следующему
+    u["guide_index"] = idx + 1
+    save_users(USERS)
     gs_upsert_summary(cb.from_user.id, u)
 
-    # Если это гайд №3 — выдаём предметное задание, иначе ничего лишнего не шлём
-    guide = next((g for g in GUIDES["newbie"] if g["id"] == guide_id), None)
-    if guide and guide.get("num") == 3:
-        await _send_subject_task(cb.from_user.id, u, guide)
-
-    await cb.answer("✅ Отмечено как прочитанное")
+    # Отправляем следующий гайд
+    await cb.message.answer("✅ Гайд отмечен как прочитанный. Лови следующий гайд 👇")
+    await _send_newbie_guide(cb.from_user.id)
+    await cb.answer()
 
 
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
@@ -680,54 +701,50 @@ async def newbie_test_done(cb: CallbackQuery):
 
     await cb.answer()
 
+# ====== Новичок: отметка выполнения задания ======
 @dp.callback_query(F.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
     u = user(cb)
     if u.get("role") != "newbie":
         await cb.answer("Только для новичков", show_alert=True)
         return
- 
+
     guide_id = cb.data.split(":")[2]
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
-
     if idx >= len(items):
         await cb.answer("Все гайды уже пройдены.")
         return
 
-    guide = items[idx]
-    if guide["id"] != guide_id:
+    current_guide = items[idx]
+    if current_guide["id"] != guide_id:
         await cb.answer("Это не текущий гайд.")
         return
 
-    # отмечаем задание выполненным
     pr = u.setdefault("progress", {})
     st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     if not st.get("read"):
         await cb.answer("Сначала отметь, что прочитал гайд.", show_alert=True)
         return
+
     st["task_done"] = True
     save_users(USERS)
-    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Задание выполнено", f"guide={guide_id}")
+    gs_upsert_summary(cb.from_user.id, u)
+    gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Задание выполнено", f"guide={guide_id}")
+
+    # Продвигаем к следующему гайдy или финальному тесту
+    u["guide_index"] = idx + 1
+    save_users(USERS)
     gs_upsert_summary(cb.from_user.id, u)
 
-    # переход на следующий гайд или финальный тест
-    if idx < len(items) - 1:
-        u["guide_index"] = idx + 1
-        save_users(USERS)
-        gs_upsert_summary(cb.from_user.id, u)
-
+    if u["guide_index"] < len(items):
         await cb.message.answer("✅ Задание принято! Лови следующий гайд 👇")
         await _send_newbie_guide(cb.from_user.id)
     else:
-        # последний гайд выполнен
-        u["guide_index"] = len(items)
-        save_users(USERS)
-        gs_upsert_summary(cb.from_user.id, u)
-
         await cb.message.answer("🎉 Все гайды пройдены! Доступен финальный тест:", reply_markup=kb_final_test())
 
     await cb.answer()
+
 
 
 @dp.callback_query(F.data == "newbie:final")
@@ -956,6 +973,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
