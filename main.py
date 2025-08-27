@@ -290,7 +290,7 @@ def kb_final_test():
 # ============== УТИЛИТЫ ==============
 def user(obj: Message | CallbackQuery) -> dict:
     uid = obj.from_user.id
-    if str((cb.from_user.id)) not in USERS:
+    if str(obj.from_user.id) not in USERS:
         USERS[str((cb.from_user.id))] = {
             "fio": None,
             "role": None,
@@ -1042,6 +1042,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
