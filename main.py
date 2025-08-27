@@ -182,10 +182,10 @@ def load_guides():
     if not data:
         data = {
             # Новички — 4 гайда (пример), 3-й с предметной задачей
-            "newbie": [
-                {"id": "n1", "num": 1, "title": "Гайд 1", "url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"},
-                {"id": "n2", "num": 2, "title": "Гайд 2", "url": "https://example.com/n2"},
-                {"id": "n3", "num": 3, "title": "Гайд 3", "url": "https://example.com/n3"},
+           "newbie": [
+                {"id": "n1", "num": 1, "title": "Гайд 1", "url": "https://docs.google.com/document/d/1KtiDdFpNnUQRI1c6VS-6JjZk8mDCbpUiGvngjl7TqSg/edit?usp=sharing", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"},
+                {"id": "n2", "num": 2, "title": "Гайд 2", "url": "https://example.com/n2", "test_url": "https://example.com/n2test"},
+                {"id": "n3", "num": 3, "title": "Гайд 3", "url": "https://example.com/n3", "test_url": "https://example.com/n3test"},
                 {"id": "n4", "num": 4, "title": "Гайд 4", "url": "https://example.com/n4"},
             ],
             # Летники — высылаем всё сразу (пример наполнения)
@@ -304,7 +304,12 @@ async def _send_newbie_guide(uid: int):
         await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
         gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
         return
-
+def kb_newbie_test(guide: dict):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")],
+        [InlineKeyboardButton(text="📝 Пройти тест", url=guide.get("test_url", ""))],
+        [InlineKeyboardButton(text="✅ Отметить тест пройденным", callback_data=f"newbie:testdone:{guide['id']}")]
+    ])
     g = items[idx]
     # Отправляем сам гайд
     text = (
@@ -314,7 +319,7 @@ async def _send_newbie_guide(uid: int):
         f"Задание откроется только после отметки прочтения.\n"
         f"Сдать задание можно до <b>{DEADLINE_HOUR}:00 МСК</b>."
     )
-    await bot.send_message(uid, text, reply_markup=kb_mark_read(g["id"]))
+    await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
     u["last_guide_sent_at"] = _now_msk().isoformat()
     save_users(USERS)
     gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
@@ -524,6 +529,24 @@ async def newbie_mark_read(cb: CallbackQuery):
         await cb.answer("Только для новичков", show_alert=True)
         return
     guide_id = cb.data.split(":")[2]
+@dp.callback_query(F.data.startswith("newbie:testdone:"))
+async def newbie_test_done(cb: CallbackQuery):
+    u = user(cb)
+    if u.get("role") != "newbie":
+        await cb.answer("Только для новичков", show_alert=True)
+        return
+
+    guide_id = cb.data.split(":")[2]
+    pr = u.setdefault("progress", {})
+    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st["test_done"] = True
+    save_users(USERS)
+    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден (новичок)", f"guide={guide_id}")
+    gs_upsert_summary(cb.from_user.id, u)
+
+    await cb.message.answer("✅ Тест отмечен как пройденный.")
+    await cb.answer()
+
     # найдём объект гайда по guide_index
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
@@ -817,6 +840,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
