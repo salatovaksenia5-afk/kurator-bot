@@ -310,20 +310,38 @@ def kb_newbie_test(guide: dict):
         [InlineKeyboardButton(text="📝 Пройти тест", url=guide.get("test_url", ""))],
         [InlineKeyboardButton(text="✅ Отметить тест пройденным", callback_data=f"newbie:testdone:{guide['id']}")]
     ])
+
+
+async def _send_newbie_guide(uid: int):
+    u = USERS.get(str(uid))
+    if not u or u.get("role") != "newbie":
+        return
+    idx = u.get("guide_index", 0)
+    u["last_guide_sent_at"] = None  # сбрасываем, чтобы scheduler утром выдал новый
+    save_users(USERS)
+    items = GUIDES["newbie"]
+    if idx >= len(items):
+        # Все гайды пройдены — финальный тест (однократно)
+        await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
+        await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
+        gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
+        return
+
     g = items[idx]
-    # Отправляем сам гайд
     text = (
         f"📘 Сегодняшний гайд #{g['num']}: <b>{g['title']}</b>\n"
         f"Ссылка: {g['url']}\n\n"
         f"После прочтения нажми «Отметить прочитанным».\n"
-        f"Задание откроется только после отметки прочтения.\n"
+        f"Задание и тест откроются только после отметки прочтения.\n"
         f"Сдать задание можно до <b>{DEADLINE_HOUR}:00 МСК</b>."
     )
-await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
-u["last_guide_sent_at"] = _now_msk().isoformat()
-save_users(USERS)
-gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
-gs_upsert_summary(uid, u)
+    # 👉 Здесь как раз await внутри функции!
+    await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
+    u["last_guide_sent_at"] = _now_msk().isoformat()
+    save_users(USERS)
+    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
+    gs_upsert_summary(uid, u)
+
 
 async def _send_subject_task(uid: int, u: dict, guide: dict):
     """
@@ -840,6 +858,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
