@@ -183,7 +183,7 @@ def load_guides():
         data = {
             # Новички — 4 гайда (пример), 3-й с предметной задачей
             "newbie": [
-                {"id": "n1", "num": 1, "title": "Гайд 1", "url": "https://example.com/n1"},
+                {"id": "n1", "num": 1, "title": "Гайд 1", "url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"},
                 {"id": "n2", "num": 2, "title": "Гайд 2", "url": "https://example.com/n2"},
                 {"id": "n3", "num": 3, "title": "Гайд 3", "url": "https://example.com/n3"},
                 {"id": "n4", "num": 4, "title": "Гайд 4", "url": "https://example.com/n4"},
@@ -609,7 +609,7 @@ async def newbie_final_test(cb: CallbackQuery):
         await cb.answer("Только для новичков", show_alert=True)
         return
     # Ссылка на финальный тест (замени)
-    await cb.message.answer("📝 Финальный тест: https://example.com/final-test")
+    await cb.message.answer("📝 Финальный тест: https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header")
     # Отметка прохождения теста (кнопка)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Я прошёл финальный тест", callback_data="newbie:final:done")]
@@ -646,7 +646,7 @@ async def letnik_all(cb: CallbackQuery):
     for g in GUIDES["letnik"]:
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📖 Открыть материал", url=g["url"])],
-            [InlineKeyboardButton(text="📝 Открыть тест", url=g.get("test_url","https://example.com/test"))],
+            [InlineKeyboardButton(text="📝 Открыть тест", url=g.get("test_url","https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header"))],
             [InlineKeyboardButton(text="✅ Отметить тест пройденным", callback_data=f"letnik:testdone:{g['id']}")]
         ])
         await cb.message.answer(f"<b>{g['title']}</b>", reply_markup=kb)
@@ -817,6 +817,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
