@@ -426,8 +426,8 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
     await u["chat"].send_message(text, reply_markup=kb)
     if current_guide.get("num") == 3:
     # Не делаем return здесь, просто отправляем задание
-    await _send_subject_task(cb.from_user.id, u, current_guide)
-    await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
+        await _send_subject_task(cb.from_user.id, u, current_guide)
+        await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
     # Продолжаем и отправляем следующую кнопку для следующего гайда
 
 
@@ -1044,6 +1044,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
