@@ -473,7 +473,6 @@ async def progress_me(cb: CallbackQuery):
     f"Пройдено тестов: {done_tests}\n"
 )
 await cb.message.answer(text)
-    await cb.answer()
 
 @dp.callback_query(F.data == "guides:menu")
 async def guides_menu(cb: CallbackQuery):
@@ -874,6 +873,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
