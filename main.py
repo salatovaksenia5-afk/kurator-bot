@@ -346,16 +346,18 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
     """
     Вызывается после отметки «прочитано».
     Если это 3-й гайд — выдаём предметное задание.
-    Иначе — базовая заглушка для задания.
+    Для остальных гайдов ничего не шлём.
     """
-    idx_num = guide.get("num")
-    if idx_num == 3:
-        subj = (u.get("subject") or "").lower()
-        task = SUBJECT_TASKS.get(subj, "Сделай предметное задание по третьему гайду и отправь результат.")
-        msg = f"🧩 Предметное задание к гайду #3 ({u.get('subject','—')}):\n\n{task}\n\nСдай до {DEADLINE_HOUR}:00."
-        kb = kb_task_button(guide["id"]) if _is_before_deadline() else None
-        await bot.send_message(uid, msg, reply_markup=kb)
-        gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Задание выдано", f"guide_id={guide['id']}")
+    # Отправляем предметное задание только для гайда №3
+    if guide.get("num") != 3:
+        return
+
+    subj = (u.get("subject") or "").lower()
+    task = SUBJECT_TASKS.get(subj, "Сделай предметное задание по третьему гайду и отправь результат.")
+    msg = f"🧩 Предметное задание к гайду #3 ({u.get('subject','—')}):\n\n{task}\n\nСдай до {DEADLINE_HOUR}:00."
+    kb = kb_task_button(guide["id"]) if _is_before_deadline() else None
+    await bot.send_message(uid, msg, reply_markup=kb)
+    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Задание выдано", f"guide_id={guide['id']}")
 
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
 @dp.message(CommandStart())
@@ -549,7 +551,7 @@ async def newbie_mark_read(cb: CallbackQuery):
 
     guide_id = cb.data.split(":")[2]
 
-    # Отмечаем прогресс по ID (без проверки индекса)
+    # Отмечаем прочтение в прогрессе по id гайда
     pr = u.setdefault("progress", {})
     st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     st["read"] = True
@@ -558,12 +560,13 @@ async def newbie_mark_read(cb: CallbackQuery):
     gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Отмечен прочитанным", f"guide={guide_id}")
     gs_upsert_summary(cb.from_user.id, u)
 
-    # Ищем сам гайд по id и выдаём задание
+    # Если это гайд №3 — выдаём предметное задание, иначе ничего лишнего не шлём
     guide = next((g for g in GUIDES["newbie"] if g["id"] == guide_id), None)
-    if guide:
+    if guide and guide.get("num") == 3:
         await _send_subject_task(cb.from_user.id, u, guide)
 
     await cb.answer("✅ Отмечено как прочитанное")
+
 
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
@@ -573,15 +576,15 @@ async def newbie_test_done(cb: CallbackQuery):
         return
 
     guide_id = cb.data.split(":")[2]
-    # Отмечаем тест пройденным
     pr = u.setdefault("progress", {})
-    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st = pr.
+    setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     st["test_done"] = True
     save_users(USERS)
     gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден (новичок)", f"guide={guide_id}")
     gs_upsert_summary(cb.from_user.id, u)
 
-    # Если это текущий гайд и он НЕ #3 (без предметного задания) — сразу двигаем дальше
+    # Если это текущий гайд и он НЕ #3 — двигаем пользователя дальше сразу
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
     if idx < len(items):
@@ -592,12 +595,12 @@ async def newbie_test_done(cb: CallbackQuery):
             gs_upsert_summary(cb.from_user.id, u)
             await cb.message.answer("✅ Тест принят! Лови следующий гайд 👇")
             await _send_newbie_guide(cb.from_user.id)
-        else:
-            await cb.message.answer("✅ Тест отмечен как пройденный.")
-    else:
-        await cb.message.answer("✅ Тест отмечен как пройденный.")
+            await cb.answer()
+            return
 
+    await cb.message.answer("✅ Тест отмечен как пройденный.")
     await cb.answer()
+
 
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
@@ -897,6 +900,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
