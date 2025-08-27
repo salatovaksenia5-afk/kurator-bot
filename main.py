@@ -548,7 +548,25 @@ async def newbie_mark_read(cb: CallbackQuery):
     if u.get("role") != "newbie":
         await cb.answer("Только для новичков", show_alert=True)
         return
+
     guide_id = cb.data.split(":")[2]
+
+    # Отмечаем прогресс по ID (без проверки индекса)
+    pr = u.setdefault("progress", {})
+    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st["read"] = True
+    save_users(USERS)
+
+    gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Отмечен прочитанным", f"guide={guide_id}")
+    gs_upsert_summary(cb.from_user.id, u)
+
+    # Ищем сам гайд по id и выдаём задание
+    guide = next((g for g in GUIDES["newbie"] if g["id"] == guide_id), None)
+    if guide:
+        await _send_subject_task(cb.from_user.id, u, guide)
+
+    await cb.answer("✅ Отмечено как прочитанное")
+
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
@@ -877,6 +895,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
