@@ -332,28 +332,6 @@ def kb_newbie_test(guide: dict):
     )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
-    if idx >= len(items):
-        await bot.send_message(uid, "🎉 Все гайды для новичков пройдены!")
-        await bot.send_message(uid, "Финальный тест доступен ниже:", reply_markup=kb_final_test())
-        gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), "Финальный тест выдан")
-        return
-
-    g = items[idx]
-    text = (
-        f"📘 Сегодняшний гайд #{g['num']}: {g['title']}\n\n"
-        f"{g.get('text','')}\n"
-        f"Ссылка на тест: {g.get('test_url','—')}\n\n"
-        f"После прочтения нажми «Отметить прочитанным».\n"
-        f"Сдать задание можно до {DEADLINE_HOUR}:00 МСК."
-    )
-    await bot.send_message(uid, text, reply_markup=kb_newbie_test(g))
-    u["last_guide_sent_at"] = _now_msk().isoformat()
-    save_users(USERS)
-    gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Гайд выдан", f"id={g['id']}, idx={idx+1}")
-    gs_upsert_summary(uid, u)
-
 
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
@@ -402,6 +380,7 @@ async def _send_subject_task(uid: int, u: dict, guide: dict):
     kb = kb_task_button(guide["id"]) if _is_before_deadline() else None
     await bot.send_message(uid, msg, reply_markup=kb)
     gs_log_event(uid, u.get("fio",""), u.get("role",""), u.get("subject",""), f"Задание выдано", f"guide_id={guide['id']}")
+
 
 
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
@@ -944,6 +923,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
