@@ -181,7 +181,7 @@ def load_guides():
     data = _read_json(GUIDES_FILE, {})
     if not data:
         data = {
-            # Новички — 4 гайда (пример), 3-й с предметной задачей
+ GUIDES = {         # Новички — 4 гайда (пример), 3-й с предметной задачей
     "newbie": [
         {
             "id": "guide1",
@@ -214,7 +214,7 @@ def load_guides():
     ]
 }
             # Летники — высылаем всё сразу (пример наполнения)
-            "letnik": [
+     "letnik": [
                 {"id": "l1", "title": "Летник 1", "url": "https://example.com/l1", "test_url": "https://example.com/lt1test"},
                 {"id": "l2", "title": "Летник 2", "url": "https://example.com/l2", "test_url": "https://example.com/lt2test"},
                 {"id": "l3", "title": "Летник 3", "url": "https://example.com/l3", "test_url": "https://example.com/lt3test"},
@@ -933,6 +933,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
