@@ -358,7 +358,7 @@ FINAL_TEST_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfFINALTEST/viewform?
 
 
 # отправка конкретного гайда
-async def _send_newbie_guide(cb: CallbackQuery, guide: dict):
+async def _send_newbie_guide(message, guide: dict):
     kb = InlineKeyboardBuilder()
 
     # кнопка "прочитал"
@@ -367,8 +367,8 @@ async def _send_newbie_guide(cb: CallbackQuery, guide: dict):
         callback_data=f"newbie:read:{guide['id']}"
     )
 
-    # кнопки теста (если есть test_url)
-    if guide.get("test_url"):
+    # кнопки теста (если есть ссылка)
+    if guide.get("test_url") and guide["test_url"].strip():
         kb.button(text="📝 Пройти тест", url=guide["test_url"])
         kb.button(
             text="✅ Я прошёл тест",
@@ -377,7 +377,7 @@ async def _send_newbie_guide(cb: CallbackQuery, guide: dict):
 
     kb.adjust(1)
 
-    await cb.message.answer(
+    await message.answer(
         f"📘 Гайд {guide['num']}: {guide['title']}\n\n"
         f"{guide['text']}\n\n"
         f"🔗 {guide['url']}",
@@ -399,16 +399,13 @@ async def newbie_mark_read(cb: CallbackQuery):
 
     await cb.answer("Отмечено ✅", show_alert=False)
 
-    # находим текущий гайд
     guides = GUIDES["newbie"]
     idx = next((i for i, g in enumerate(guides) if g["id"] == guide_id), None)
 
     if idx is not None and idx + 1 < len(guides):
-        # есть следующий гайд
         await cb.message.answer("👉 Переходим к следующему гайду:")
-        await _send_newbie_guide(cb, guides[idx + 1])
+        await _send_newbie_guide(cb.message, guides[idx + 1])
     else:
-        # всё пройдено — финал
         kb = InlineKeyboardBuilder()
         kb.button(text="🏁 Пройти финальный тест", url=FINAL_TEST_URL)
         kb.adjust(1)
@@ -423,7 +420,6 @@ async def newbie_test_done(cb: CallbackQuery):
 
     if "progress" not in u:
         u["progress"] = {}
-    # ставим отметку
     if guide_id in u["progress"]:
         u["progress"][guide_id]["test_done"] = True
     else:
@@ -432,20 +428,18 @@ async def newbie_test_done(cb: CallbackQuery):
 
     await cb.answer("Тест отмечен ✅", show_alert=False)
 
-    # ищем текущий гайд
     guides = GUIDES["newbie"]
     idx = next((i for i, g in enumerate(guides) if g["id"] == guide_id), None)
 
     if idx is not None and idx + 1 < len(guides):
-        # следующий гайд
         await cb.message.answer("👉 Отлично! Двигаемся дальше:")
-        await _send_newbie_guide(cb, guides[idx + 1])
+        await _send_newbie_guide(cb.message, guides[idx + 1])
     else:
-        # финал
         kb = InlineKeyboardBuilder()
         kb.button(text="🏁 Пройти финальный тест", url=FINAL_TEST_URL)
         kb.adjust(1)
         await cb.message.answer("🎉 Ты прошёл все гайды! Осталось пройти финальный тест:", reply_markup=kb.as_markup())
+
 
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
 @dp.message(CommandStart())
@@ -987,6 +981,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
