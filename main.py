@@ -330,6 +330,8 @@ def kb_newbie_guide(guide: dict):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 # ====== Отправка гайда новичку ======
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u:
@@ -337,9 +339,8 @@ async def _send_newbie_guide(uid: int):
 
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
-
     if idx >= len(items):
-        # Все гайды пройдены → финальный тест
+        # Все гайды пройдены
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton("🎉 Пройти финальный тест", callback_data="newbie:final")]
         ])
@@ -347,13 +348,31 @@ async def _send_newbie_guide(uid: int):
         return
 
     guide = items[idx]
-    kb = kb_newbie_guide(guide)
+
+    # Формируем кнопки
+    buttons = []
+
+    # Кнопка теста
+    if guide.get("test_url"):
+        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
+        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
+
+    # Кнопка предметного задания (для 3-го гайда)
+    if guide.get("num") == 3:
+        buttons.append([InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
+
+    # Кнопка прочитанного (всегда)
+    buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
+
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     await bot.send_message(
         uid,
-        f"📘 Гайд {guide['num']}: {guide['title']}\n\n{guide['text']}\n\n🔗 {guide['url']}",
+        f"📘 Гайд {guide['num']}: {guide['title']}\n\n"
+        f"{guide['text']}\n\n🔗 {guide['url']}",
         reply_markup=kb
     )
+
 
 # ====== Проверка возможности перейти к следующему гайду ======
 def _can_go_next(u: dict, guide: dict) -> bool:
@@ -823,6 +842,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
