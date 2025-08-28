@@ -287,6 +287,33 @@ def kb_final_test():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📝 Пройти финальный тест", callback_data="newbie:final")]
     ])
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+def kb_guide_buttons(guide: dict):
+    """
+    Формирует клавиатуру для гайда новичка:
+    - "Пройти тест" если есть test_url
+    - "Отметить тест пройденным"
+    - "Выполнить задание" для 3-го гайда
+    - "Отметить прочитанным"
+    """
+    buttons = []
+
+    # Кнопка теста
+    test_url = guide.get("test_url", "").strip()
+    if test_url:
+        buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=test_url)])
+        buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
+
+    # Кнопка задания только для 3-го гайда
+    if guide.get("num") == 3:
+        buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
+
+    # Кнопка прочитанного всегда
+    buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 
 # ====== Утилиты ======
 def user(obj):
@@ -312,26 +339,6 @@ def user(obj):
 
 
 # ====== Клавиатуры для новичка ======
-def kb_newbie_guide(guide: dict):
-    buttons = []
-
-    # Кнопка теста
-    if guide.get("test_url"):
-        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
-        buttons.append([InlineKeyboardButton("✅ Отметить тест пройденным", callback_data=f"newbie:testdone:{guide['id']}")])
-
-    # Кнопка предметного задания (только 3-й гайд)
-    if guide.get("num") == 3:
-        buttons.append([InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
-
-    # Кнопка прочитанного (всегда)
-    buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
-
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-# ====== Отправка гайда новичку ======
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u:
@@ -339,8 +346,9 @@ async def _send_newbie_guide(uid: int):
 
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
+
+    # Все гайды пройдены
     if idx >= len(items):
-        # Все гайды пройдены
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton("🎉 Пройти финальный тест", callback_data="newbie:final")]
         ])
@@ -349,30 +357,16 @@ async def _send_newbie_guide(uid: int):
 
     guide = items[idx]
 
-    # Формируем кнопки
-    buttons = []
+    # Клавиатура для текущего гайда
+    kb = kb_guide_buttons(guide)
 
-    # Кнопка теста
-    if guide.get("test_url"):
-        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
-        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
-
-    # Кнопка предметного задания (для 3-го гайда)
-    if guide.get("num") == 3:
-        buttons.append([InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
-
-    # Кнопка прочитанного (всегда)
-    buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
-
-    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-
+    # Отправляем сообщение пользователю
     await bot.send_message(
         uid,
-        f"📘 Гайд {guide['num']}: {guide['title']}\n\n"
-        f"{guide['text']}\n\n🔗 {guide['url']}",
+        f"📘 Гайд {guide.get('num','–')}: {guide.get('title','–')}\n\n"
+        f"{guide.get('text','–')}\n\n🔗 {guide.get('url','–')}",
         reply_markup=kb
     )
-
 
 # ====== Проверка возможности перейти к следующему гайду ======
 def _can_go_next(u: dict, guide: dict) -> bool:
@@ -842,6 +836,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
