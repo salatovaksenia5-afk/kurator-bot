@@ -291,50 +291,95 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 # ====== Клавиатура для гайда новичка ======
 def kb_guide_buttons(guide: dict, u: dict):
     """
-    Кнопки:
-    - "Пройти тест" всегда
-    - "Я прошёл тест" пока не нажат
-    - "Выполнил задание" для 3-го гайда
+    Формирует клавиатуру для гайда новичка:
+    - "Пройти тест" если есть test_url
+    - "Я прошёл тест"
+    - "Выполнить задание" для 3-го гайда
     - "Отметить прочитанным"
     """
     buttons = []
-    progress = u.setdefault("progress", {}).setdefault(
-        guide["id"], {"read": False, "task_done": False, "test_done": False}
-    )
+    progress = u.setdefault("progress", {}).setdefault(guide["id"], {
+        "read": False,
+        "task_done": False,
+        "test_done": False
+    })
 
     # Кнопка теста
     test_url = guide.get("test_url", "").strip()
-    if test_url:
+    if test_url and not progress.get("test_done"):
         buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=test_url)])
-        if not progress.get("test_done"):
-            buttons.append([
-                InlineKeyboardButton(
-                    text="✅ Я прошёл тест",
-                    callback_data=f"newbie:testdone:{guide['id']}"
-                )
-            ])
+        buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
 
-    # Кнопка задания только для 3-го гайда
+    # Кнопка задания (только для 3-го гайда)
     if guide.get("num") == 3 and not progress.get("task_done"):
-        buttons.append([
-            InlineKeyboardButton(
-                text="✅ Я выполнил задание",
-                callback_data=f"newbie:task:{guide['id']}"
-            )
-        ])
+        buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
 
     # Кнопка "Отметить прочитанным"
     if not progress.get("read"):
-        buttons.append([
-            InlineKeyboardButton(
-                text="📖 Отметить прочитанным",
-                callback_data=f"newbie:read:{guide['id']}"
-            )
-        ])
+        buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+# ====== Отправка следующего гайда ======
+async def send_next_guide(message, u, current_guide_id):
+    guides = GUIDES["newbie"]
+    idx = next((i for i, g in enumerate(guides) if g["id"] == current_guide_id), None)
+
+    if idx is not None and idx + 1 < len(guides):
+        next_guide = guides[idx + 1]
+        kb = kb_guide_buttons(next_guide, u)
+        await message.answer(f"📘 {next_guide['title']}\n\n{next_guide['text']}", reply_markup=kb)
+    else:
+        await message.answer("🎉 Вы прошли все гайды! Остался финальный тест ✅")
+
+
+# ====== Обработка «Я прошёл тест» ======
+@app.callback_query_handler(lambda c: c.data.startswith("newbie:testdone:"))
+async def newbie_test_done(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[2]
+
+    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
+    progress["test_done"] = True
+    save_user(u)
+
+    await cb.answer("Тест отмечен как пройден ✅")
+
+    # отправляем следующий гайд
+    await send_next_guide(cb.message, u, guide_id)
+
+
+# ====== Обработка «Отметить прочитанным» ======
+@app.callback_query_handler(lambda c: c.data.startswith("newbie:read:"))
+async def newbie_mark_read(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[2]
+
+    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
+    progress["read"] = True
+    save_user(u)
+
+    await cb.answer("Отмечено как прочитанное ✅")
+
+    # отправляем следующий гайд
+    await send_next_guide(cb.message, u, guide_id)
+
+
+# ====== Обработка «Я выполнил задание» ======
+@app.callback_query_handler(lambda c: c.data.startswith("newbie:task:"))
+async def newbie_task_done(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[2]
+
+    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
+    progress["task_done"] = True
+    save_user(u)
+
+    await cb.answer("Задание отмечено как выполненное ✅")
+
+    # отправляем следующий гайд
+    await send_next_guide(cb.message, u, guide_id)
 
 
 # ====== Проверка возможности перейти к следующему гайду ======
@@ -395,39 +440,25 @@ async def _send_newbie_guide(uid: int):
 
 
 # ====== Хендлеры новичка ======
-@dp.callback_query(F.data.startswith("newbie:read:"))
-async def newbie_mark_read(cb: CallbackQuery):
-    u = user(cb)
-    guide_id = cb.data.split(":")[2]
-    idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
+# ====== Отправка следующего гайда ======
+async def send_next_guide(message, u, current_guide_id):
+    guides = GUIDES["newbie"]
+    idx = next((i for i, g in enumerate(guides) if g["id"] == current_guide_id), None)
 
-    if idx >= len(items):
-        await cb.answer("Все гайды уже пройдены.")
-        return
-
-    guide = items[idx]
-    if guide["id"] != guide_id:
-        await cb.answer("Это не текущий гайд.")
-        return
-
-    progress = u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
-    progress["read"] = True
-    save_users(USERS)
-    await cb.answer("✅ Гайд отмечен как прочитанный")
-
-    if _can_go_next(u, guide):
-        u["guide_index"] += 1
-        save_users(USERS)
-        await _send_newbie_guide(cb.from_user.id)
+    if idx is not None and idx + 1 < len(guides):
+        next_guide = guides[idx + 1]
+        kb = kb_guide_buttons(next_guide, u)
+        await message.answer(f"📘 {next_guide['title']}\n\n{next_guide['text']}", reply_markup=kb)
+    else:
+        await message.answer("🎉 Вы прошли все гайды! Остался финальный тест ✅")
 
 
-@router.callback_query(F.data.startswith("newbie:testdone:"))
+# ====== Обработка «Я прошёл тест» ======
+@app.callback_query_handler(lambda c: c.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
 
-    # сохраняем прогресс
     progress = u.setdefault("progress", {}).setdefault(guide_id, {})
     progress["test_done"] = True
     save_user(u)
@@ -437,44 +468,38 @@ async def newbie_test_done(cb: CallbackQuery):
     # отправляем следующий гайд
     await send_next_guide(cb.message, u, guide_id)
 
-async def send_next_guide(message: Message, u: dict, current_guide_id: str):
-    items = GUIDES["newbie"]
-    idx = next((i for i, g in enumerate(items) if g["id"] == current_guide_id), None)
-    if idx is None or idx + 1 >= len(items):
-        await message.answer("🎉 Все гайды пройдены! Теперь можно пройти финальный тест.")
-        return
 
-    next_guide = items[idx + 1]
-    kb = kb_guide_buttons(next_guide, u)
-    await message.answer(
-        f"📘 {next_guide['title']}\n\n{next_guide['text']}\n\n🔗 {next_guide['url']}",
-        reply_markup=kb
-    )
+# ====== Обработка «Отметить прочитанным» ======
+@app.callback_query_handler(lambda c: c.data.startswith("newbie:read:"))
+async def newbie_mark_read(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[2]
 
-@dp.callback_query(F.data.startswith("newbie:task:"))
+    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
+    progress["read"] = True
+    save_user(u)
+
+    await cb.answer("Отмечено как прочитанное ✅")
+
+    # отправляем следующий гайд
+    await send_next_guide(cb.message, u, guide_id)
+
+
+# ====== Обработка «Я выполнил задание» ======
+@app.callback_query_handler(lambda c: c.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
-    idx = u.get("guide_index", 0)
-    guide = GUIDES["newbie"][idx]
 
-    if guide["id"] != guide_id:
-        await cb.answer("Это не текущий гайд.")
-        return
+    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
+    progress["task_done"] = True
+    save_user(u)
 
-    st = u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
-    if not st.get("read"):
-        await cb.answer("Сначала отметь, что прочитал гайд.", show_alert=True)
-        return
+    await cb.answer("Задание отмечено как выполненное ✅")
 
-    st["task_done"] = True
-    save_users(USERS)
-    await cb.answer("✅ Задание принято!")
+    # отправляем следующий гайд
+    await send_next_guide(cb.message, u, guide_id)
 
-    if _can_go_next(u, guide):
-        u["guide_index"] += 1
-        save_users(USERS)
-        await _send_newbie_guide(cb.from_user.id)
 
 
 @dp.callback_query(F.data == "newbie:final")
@@ -871,6 +896,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
