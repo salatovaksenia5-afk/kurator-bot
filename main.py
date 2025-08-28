@@ -527,14 +527,14 @@ async def guides_menu(cb: CallbackQuery):
         return
 
     # показываем текущий гайд
-guide = items[idx]
-kb = kb_guide_buttons(guide, u["progress"])
-await cb.message.answer(
-    f"📘 Текущий гайд #{guide['num']}: {guide['title']}\n{guide['url']}",
-    reply_markup=kb
+    guide = items[idx]
+    kb = kb_guide_buttons(guide, u["progress"])
+    await cb.message.answer(
+        f"📘 Текущий гайд #{guide['num']}: {guide['title']}\n{guide['url']}",
+        reply_markup=kb
 )
 
-await cb.answer()
+    await cb.answer()
 
 
 
@@ -771,6 +771,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
