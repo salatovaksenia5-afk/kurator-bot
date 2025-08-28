@@ -288,64 +288,36 @@ def kb_final_test():
         [InlineKeyboardButton(text="📝 Пройти финальный тест", callback_data="newbie:final")]
     ])
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-# 1️⃣ Словарь всех гайдов
-GUIDES_DICT = {g["id"]: g for g in GUIDES["newbie"] + GUIDES["letnik"]}
 
-# 2️⃣ Кнопки для гайда
-def kb_guide_buttons(guide, user_progress):
+def kb_guide_buttons(guide: dict, user_progress: dict):
+    """
+    Формирует InlineKeyboard для гайда новичка.
+    guide: объект гайда из GUIDES['newbie']
+    user_progress: словарь прогресса пользователя для этого гайда
+    """
     guide_id = guide["id"]
-    prog = user_progress.get(guide_id, {"read": False, "test_done": False})
+    
+    # Убедимся, что все ключи прогресса есть
+    prog = user_progress.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    
     buttons = []
 
-    # Кнопка прочтения
-    if not prog.get("read"):
+    # Кнопка "Отметить прочитанным"
+    if not prog["read"]:
         buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
 
-    # Кнопка теста
-    if guide.get("test_url") and not prog.get("test_done"):
+    # Кнопки теста (если есть URL)
+    if guide.get("test_url"):
         buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
-        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
-
+        if prog["read"] and not prog["test_done"]:
+            buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
+    
+    # Можно добавить кнопку "Выполнено задание" для 3-го гайда
+    if guide.get("num") == 3:
+        buttons.append([InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"task:{guide_id}")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-# 3️⃣ Отправка гайда пользователю
-async def send_guide(uid):
-    u = USERS[str(uid)]
-    idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
-
-    if idx >= len(items):
-        await bot.send_message(uid, "🎉 Все гайды пройдены! Финальный тест доступен.", reply_markup=kb_final_test())
-        return
-
-    guide = items[idx]
-    kb = kb_guide_buttons(guide, u["progress"])
-    await bot.send_message(
-        uid,
-        f"📘 {guide['title']}\n\n{guide['text']}\n🔗 {guide['url']}",
-        reply_markup=kb
-    )
-
-# 4️⃣ Callback «прочитал»
-@dp.callback_query(F.data.startswith("read:"))
-async def mark_read(cb: CallbackQuery):
-    uid = str(cb.from_user.id)
-    guide_id = cb.data.split(":")[1]
-    USERS[uid]["progress"].setdefault(guide_id, {"read": False, "test_done": False})["read"] = True
-    save_users(USERS)
-    await cb.answer("Прочитано ✅")
-    await send_guide(cb.from_user.id)
-
-# 5️⃣ Callback «тест пройден»
-@dp.callback_query(F.data.startswith("testdone:"))
-async def mark_testdone(cb: CallbackQuery):
-    uid = str(cb.from_user.id)
-    guide_id = cb.data.split(":")[1]
-    USERS[uid]["progress"].setdefault(guide_id, {"read": True, "test_done": False})["test_done"] = True
-    USERS[uid]["guide_index"] += 1
-    save_users(USERS)
-    await cb.answer("Тест отмечен ✅")
-    await send_guide(cb.from_user.id)
 
 
 # ====== Утилиты ======
@@ -398,20 +370,23 @@ async def _send_newbie_guide(uid: int):
     )
 
 
-# ====== Хендлеры новичка ======
-# ====== Отправка следующего гайда ======
-async def send_next_guide(message, u, current_guide_id):
-    guides = GUIDES["newbie"]
-    idx = next((i for i, g in enumerate(guides) if g["id"] == current_guide_id), None)
 
-    if idx is not None and idx + 1 < len(guides):
-        next_guide = guides[idx + 1]
-        kb = kb_guide_buttons(next_guide, u)
-        await message.answer(f"📘 {next_guide['title']}\n\n{next_guide['text']}", reply_markup=kb)
-    else:
-        await message.answer("🎉 Вы прошли все гайды! Остался финальный тест ✅")
+async def send_guide(uid: int):
+    u = USERS[str(uid)]
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
 
+    if idx >= len(items):
+        await bot.send_message(uid, "🎉 Все гайды пройдены! Финальный тест доступен.", reply_markup=kb_final_test())
+        return
 
+    guide = items[idx]
+    kb = kb_guide_buttons(guide, u["progress"])  # передаем правильный словарь прогресса
+    await bot.send_message(
+        uid,
+        f"📘 {guide['title']}\n\n{guide['text']}\n🔗 {guide['url']}",
+        reply_markup=kb
+    )
 
 
 @dp.callback_query(F.data == "newbie:final")
@@ -808,6 +783,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
