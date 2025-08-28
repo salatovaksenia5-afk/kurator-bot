@@ -290,31 +290,24 @@ def kb_final_test():
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def kb_guide_buttons(guide: dict, user_progress: dict):
-    """
-    Формирует InlineKeyboard для гайда новичка.
-    guide: объект гайда из GUIDES['newbie']
-    user_progress: словарь прогресса пользователя для этого гайда
-    """
     guide_id = guide["id"]
-    
-    # Убедимся, что все ключи прогресса есть
     prog = user_progress.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     
     buttons = []
 
     # Кнопка "Отметить прочитанным"
     if not prog["read"]:
-        buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
+        buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
 
     # Кнопки теста (если есть URL)
     if guide.get("test_url"):
-        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
+        buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=guide["test_url"])])
         if prog["read"] and not prog["test_done"]:
-            buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
+            buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
     
-    # Можно добавить кнопку "Выполнено задание" для 3-го гайда
+    # Кнопка "Выполнено задание" для 3-го гайда
     if guide.get("num") == 3:
-        buttons.append([InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"task:{guide_id}")])
+        buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"task:{guide_id}")])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -771,6 +764,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
