@@ -441,13 +441,6 @@ async def newbie_mark_read(cb: CallbackQuery):
     # Отправляем следующий гайд
     await _send_newbie_guide(cb.from_user.id)
 
-        # Если гайды закончились, финальный тест
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton("🎉 Перейти к финальному тесту", callback_data="newbie:final")]
-        ])
-        await cb.message.answer("Все гайды пройдены!", reply_markup=kb)
-
-
 # ====== Выполнение задания ======
 @dp.callback_query(F.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
@@ -1062,6 +1055,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
