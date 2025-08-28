@@ -196,7 +196,7 @@ def load_guides():
                     "num": 1,
                     "title": "Первый гайд",
                     "text": "Тут текст гайда",
-                    "url": "https://example.com/guide1",
+                    "url": "https://docs.google.com/document/d/1KtiDdFpNnUQRI1c6VS-6JjZk8mDCbpUiGvngjl7TqSg/edit?usp=sharing https://docs.google.com/document/d/1tbm_vc98i4kT5UOdnOHR4ptHLZgUt475AAqQFT3buyk/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
                 },
                 {
@@ -1003,6 +1003,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
