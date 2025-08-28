@@ -291,32 +291,21 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def kb_guide_buttons(guide: dict, user_progress: dict):
     """
-    Формирует InlineKeyboard для гайда новичка с кнопками:
-    - Отметить прочитанным
-    - Пройти тест
-    - Я прошёл тест (если прочитано)
-    - Выполнено задание (для 3-го гайда)
+    Формирует InlineKeyboard для гайда новичка.
+    Теперь только две кнопки: пройти тест и я прошёл тест.
     """
     guide_id = guide["id"]
-    prog = user_progress.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
-    
-    buttons = []
+    prog = user_progress.setdefault(guide_id, {"test_done": False})
 
-    # Кнопка "Отметить прочитанным"
-    if not prog["read"]:
-        buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
+    buttons = []
 
     # Кнопка "Пройти тест"
     if guide.get("test_url"):
         buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=guide["test_url"])])
 
-    # Кнопка "Я прошёл тест" — показывается только если гайд прочитан и тест ещё не отмечен
-    if prog["read"] and not prog["test_done"]:
+    # Кнопка "Я прошёл тест"
+    if not prog["test_done"]:
         buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
-
-    # Кнопка "Выполнено задание" для 3-го гайда
-    if guide.get("num") == 3 and not prog.get("task_done"):
-        buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"task:{guide_id}")])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -372,7 +361,7 @@ async def newbie_mark_task(cb: CallbackQuery):
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[1]
-    
+
     # Отмечаем тест как пройденный
     u["progress"].setdefault(guide_id, {})["test_done"] = True
     save_users(USERS)
@@ -380,21 +369,18 @@ async def newbie_test_done(cb: CallbackQuery):
     await cb.answer("🎉 Тест отмечен как пройденный!")
 
     # Переходим к следующему гайду
-    idx = u.get("guide_index", 0)
-    u["guide_index"] = idx + 1  # увеличиваем индекс
+    u["guide_index"] = u.get("guide_index", 0) + 1
     save_users(USERS)
 
     items = GUIDES["newbie"]
     if u["guide_index"] >= len(items):
-        # Все гайды пройдены — финальный тест
         await bot.send_message(cb.from_user.id, "🎉 Все гайды пройдены! Доступен финальный тест.", reply_markup=kb_final_test())
     else:
-        # Высылаем следующий гайд
         guide = items[u["guide_index"]]
         kb = kb_guide_buttons(guide, u["progress"])
         await bot.send_message(
             cb.from_user.id,
-            f"📘 Гайд {guide['num']}: {guide['title']}\n\n{guide['text']}\n🔗 {guide['url']}",
+            f"📘 Гайд {guide['num']}: {guide['title']}\n\n{guide['text']}\n🔗 {guide.get('url', '')}",
             reply_markup=kb
         )
 
@@ -796,6 +782,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
