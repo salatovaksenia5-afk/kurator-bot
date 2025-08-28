@@ -196,7 +196,7 @@ def load_guides():
                     "id": "guide1",
                     "num": 1,
                     "title": "Первый гайд",
-                    "text": "Тут текст гайда",
+                    "text": "переходи по ссылкам и изучай внимательно!",
                     "url": "1) https://docs.google.com/document/d/1KtiDdFpNnUQRI1c6VS-6JjZk8mDCbpUiGvngjl7TqSg/edit?usp=sharing 2)  https://docs.google.com/document/d/1tbm_vc98i4kT5UOdnOHR4ptHLZgUt475AAqQFT3buyk/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
                 },
@@ -204,7 +204,7 @@ def load_guides():
                     "id": "guide2",
                     "num": 2,
                     "title": "Второй гайд",
-                    "text": "Тут текст гайда",
+                    "text": "переходи по ссылкам и изучай внимательно!",
                     "url": "1) https://docs.google.com/document/d/18ZKfsL12_DpttspiO-0sCR83_-xNBgZ8gsxFf-Fe-q4/edit?usp=sharing 2) https://docs.google.com/document/d/1HzJy-JQCl9wo7nOpp1_EBpRI1UkiIVxPgjr1pK1nQr4/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"
                 },
@@ -212,15 +212,15 @@ def load_guides():
                     "id": "guide3",
                     "num": 3,
                     "title": "Третий гайд",
-                    "text": "Тут текст гайда",
-                    "url": "https://example.com/guide3",
+                    "text": "переходи по ссылкам и изучай внимательно!",
+                    "url": "https://docs.google.com/document/d/1gkhcvRV6HydDILnm24jY7ltOKsriM71jdHdzBn2b9VY/edit?usp=sharing",
                     "test_url": "https://example.com/guide1"
                 },
                 {
                     "id": "guide4",
                     "num": 4,
                     "title": "Четвёртый гайд",
-                    "text": "Тут текст гайда",
+                    "text": "В этом гайде нет теста, поэтому нажимай сразу кнопку и переходи к финальному!)",
                     "url": "https://example.com/guide4",
                     "test_url": "https://forms.gle/xyz222"
                 }
@@ -782,6 +782,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
