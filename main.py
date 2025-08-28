@@ -443,53 +443,6 @@ async def send_next_guide(message, u, current_guide_id):
         await message.answer("🎉 Вы прошли все гайды! Остался финальный тест ✅")
 
 
-# ====== Обработка «Я прошёл тест» ======
-@app.callback_query_handler(lambda c: c.data.startswith("newbie:testdone:"))
-async def newbie_test_done(cb: CallbackQuery):
-    u = user(cb)
-    guide_id = cb.data.split(":")[2]
-
-    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
-    progress["test_done"] = True
-    save_user(u)
-
-    await cb.answer("Тест отмечен как пройден ✅")
-
-    # отправляем следующий гайд
-    await send_next_guide(cb.message, u, guide_id)
-
-
-# ====== Обработка «Отметить прочитанным» ======
-@app.callback_query_handler(lambda c: c.data.startswith("newbie:read:"))
-async def newbie_mark_read(cb: CallbackQuery):
-    u = user(cb)
-    guide_id = cb.data.split(":")[2]
-
-    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
-    progress["read"] = True
-    save_user(u)
-
-    await cb.answer("Отмечено как прочитанное ✅")
-
-    # отправляем следующий гайд
-    await send_next_guide(cb.message, u, guide_id)
-
-
-# ====== Обработка «Я выполнил задание» ======
-@app.callback_query_handler(lambda c: c.data.startswith("newbie:task:"))
-async def newbie_task_done(cb: CallbackQuery):
-    u = user(cb)
-    guide_id = cb.data.split(":")[2]
-
-    progress = u.setdefault("progress", {}).setdefault(guide_id, {})
-    progress["task_done"] = True
-    save_user(u)
-
-    await cb.answer("Задание отмечено как выполненное ✅")
-
-    # отправляем следующий гайд
-    await send_next_guide(cb.message, u, guide_id)
-
 
 
 @dp.callback_query(F.data == "newbie:final")
@@ -886,6 +839,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
