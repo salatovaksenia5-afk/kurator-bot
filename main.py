@@ -348,97 +348,191 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQu
 from aiogram import F
 
 # ====== Новичок: отправка следующего гайда ======
-# ==== НОВИЧКИ: гайды и тесты ====
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
+from aiogram import F
 
-from aiogram.types import CallbackQuery
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+# ====== Пользователь ======
+def user(obj: Message | CallbackQuery) -> dict:
+    uid = str(obj.from_user.id)
+    if uid not in USERS:
+        USERS[uid] = {
+            "fio": None,
+            "role": None,
+            "subject": None,
+            "guide_index": 0,
+            "last_guide_sent_at": None,
+            "progress": {},
+            "created_at": _now_msk().isoformat(),
+            "finished_at": "",
+            "status": "",
+            "awaiting_fio": False,
+            "awaiting_subject": False,
+            "awaiting_code": False
+        }
+        save_users(USERS)
+    return USERS[uid]
 
-# финальный тест (своя ссылка!)
-FINAL_TEST_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfFINALTEST/viewform?usp=header"
 
+# ====== Отправка гайда ======
+async def _send_newbie_guide(message: Message, guide: dict):
+    buttons = []
 
-# отправка конкретного гайда
-async def _send_newbie_guide(message, guide: dict):
-    kb = InlineKeyboardBuilder()
-
-    # кнопка "прочитал"
-    kb.button(
+    # Кнопка "Отметить прочитанным"
+    buttons.append([InlineKeyboardButton(
         text="✅ Отметить прочитанным",
         callback_data=f"newbie:read:{guide['id']}"
-    )
+    )])
 
-    # кнопки теста (если есть ссылка)
+    # Кнопки теста (если есть test_url)
     if guide.get("test_url") and guide["test_url"].strip():
-        kb.button(text="📝 Пройти тест", url=guide["test_url"])
-        kb.button(
+        buttons.append([InlineKeyboardButton(
+            text="📝 Пройти тест",
+            url=guide["test_url"]
+        )])
+        buttons.append([InlineKeyboardButton(
             text="✅ Я прошёл тест",
-            callback_data=f"newbie:test_done:{guide['id']}"
-        )
+            callback_data=f"newbie:testdone:{guide['id']}"
+        )])
 
-    kb.adjust(1)
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     await message.answer(
         f"📘 Гайд {guide['num']}: {guide['title']}\n\n"
         f"{guide['text']}\n\n"
         f"🔗 {guide['url']}",
-        reply_markup=kb.as_markup()
+        reply_markup=kb
     )
 
 
-# обработка "прочитал"
-@dp.callback_query(lambda c: c.data.startswith("newbie:read:"))
+# ====== Предметное задание для 3-го гайда ======
+async def _send_subject_task(uid: int, u: dict, guide: dict):
+    if guide.get("num") != 3:
+        return
+    subj = u.get("subject")
+    task_text = SUBJECT_TASKS.get(subj, "Задание отсутствует")
+    await bot.send_message(uid, f"🛠 Предметное задание по {subj} для {guide['title']}:\n\n{task_text}")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")]
+    ])
+    await bot.send_message(uid, "Когда выполните — нажмите кнопку:", reply_markup=kb)
+
+
+# ====== Отметка прочитанного ======
+@dp.callback_query(F.data.startswith("newbie:read:"))
 async def newbie_mark_read(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
 
-    # помечаем как прочитанный
-    if "progress" not in u:
-        u["progress"] = {}
-    u["progress"][guide_id] = {"read": True, "test_done": False}
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
+    if idx >= len(items):
+        await cb.answer("Все гайды уже пройдены.")
+        return
+
+    current_guide = items[idx]
+    if current_guide["id"] != guide_id:
+        await cb.answer("Это не текущий гайд.")
+        return
+
+    u["progress"].setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})["read"] = True
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+    gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Гайд прочитан", f"guide={guide_id}")
+
+    # Если это 3-й гайд — отправляем предметное задание
+    if current_guide.get("num") == 3:
+        await _send_subject_task(cb.from_user.id, u, current_guide)
+        await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
+        return
+
+    # Продвигаем к следующему гайду
+    u["guide_index"] += 1
     save_users(USERS)
 
-    await cb.answer("Отмечено ✅", show_alert=False)
-
-    guides = GUIDES["newbie"]
-    idx = next((i for i, g in enumerate(guides) if g["id"] == guide_id), None)
-
-    if idx is not None and idx + 1 < len(guides):
-        await cb.message.answer("👉 Переходим к следующему гайду:")
-        await _send_newbie_guide(cb.message, guides[idx + 1])
+    await cb.answer("✅ Гайд отмечен как прочитанный")
+    # Отправляем следующий гайд, если есть
+    if u["guide_index"] < len(items):
+        await _send_newbie_guide(cb.message, items[u["guide_index"]])
     else:
-        kb = InlineKeyboardBuilder()
-        kb.button(text="🏁 Пройти финальный тест", url=FINAL_TEST_URL)
-        kb.adjust(1)
-        await cb.message.answer("🎉 Ты прошёл все гайды! Осталось пройти финальный тест:", reply_markup=kb.as_markup())
+        # Если гайды закончились, финальный тест
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton("🎉 Перейти к финальному тесту", callback_data="newbie:final")]
+        ])
+        await cb.message.answer("Все гайды пройдены!", reply_markup=kb)
 
 
-# обработка "тест пройден"
-@dp.callback_query(lambda c: c.data.startswith("newbie:test_done:"))
+# ====== Выполнение задания ======
+@dp.callback_query(F.data.startswith("newbie:task:"))
+async def newbie_task_done(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[2]
+
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
+    if idx >= len(items):
+        await cb.answer("Все гайды уже пройдены.")
+        return
+
+    current_guide = items[idx]
+    if current_guide["id"] != guide_id:
+        await cb.answer("Это не текущий гайд.")
+        return
+
+    st = u["progress"].setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    if not st.get("read"):
+        await cb.answer("Сначала отметь, что прочитал гайд.", show_alert=True)
+        return
+
+    st["task_done"] = True
+    u["guide_index"] = idx + 1
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+    await cb.answer("✅ Задание принято!")
+    # Отправляем следующий гайд
+    if u["guide_index"] < len(items):
+        await _send_newbie_guide(cb.message, items[u["guide_index"]])
+    else:
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton("🎉 Перейти к финальному тесту", callback_data="newbie:final")]
+        ])
+        await cb.message.answer("Все гайды пройдены!", reply_markup=kb)
+
+
+# ====== Отметка теста ======
+@dp.callback_query(F.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
 
-    if "progress" not in u:
-        u["progress"] = {}
-    if guide_id in u["progress"]:
-        u["progress"][guide_id]["test_done"] = True
-    else:
-        u["progress"][guide_id] = {"read": True, "test_done": True}
+    st = u["progress"].setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st["test_done"] = True
     save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Тест пройден", f"guide={guide_id}")
+    await cb.answer("✅ Тест отмечен как пройденный.")
 
-    await cb.answer("Тест отмечен ✅", show_alert=False)
 
-    guides = GUIDES["newbie"]
-    idx = next((i for i, g in enumerate(guides) if g["id"] == guide_id), None)
+# ====== Финальный тест ======
+FINAL_TEST_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header"
 
-    if idx is not None and idx + 1 < len(guides):
-        await cb.message.answer("👉 Отлично! Двигаемся дальше:")
-        await _send_newbie_guide(cb.message, guides[idx + 1])
-    else:
-        kb = InlineKeyboardBuilder()
-        kb.button(text="🏁 Пройти финальный тест", url=FINAL_TEST_URL)
-        kb.adjust(1)
-        await cb.message.answer("🎉 Ты прошёл все гайды! Осталось пройти финальный тест:", reply_markup=kb.as_markup())
+@dp.callback_query(F.data == "newbie:final")
+async def newbie_final_test(cb: CallbackQuery):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Я прошёл финальный тест", callback_data="newbie:final:done")]
+    ])
+    await cb.message.answer(f"📝 Финальный тест: {FINAL_TEST_URL}\n\nКогда пройдёшь — нажми кнопку ниже.", reply_markup=kb)
+    await cb.answer()
+
+@dp.callback_query(F.data == "newbie:final:done")
+async def newbie_final_done(cb: CallbackQuery):
+    u = user(cb)
+    u["status"] = "Обучение завершено (новичок)"
+    u["finished_at"] = _now_msk().isoformat()
+    save_users(USERS)
+    gs_upsert_summary(cb.from_user.id, u)
+    await cb.message.answer("🎉 Поздравляем! Ты прошёл обучение. Добро пожаловать в команду!")
+    await cb.answer()
+
 
 
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
@@ -981,6 +1075,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
