@@ -288,15 +288,17 @@ def kb_final_test():
         [InlineKeyboardButton(text="📝 Пройти финальный тест", callback_data="newbie:final")]
     ])
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-def kb_guide_buttons(guide, progress):
+# ====== Кнопки ======
+def kb_guide_buttons(guide_id, progress):
     buttons = []
-    if not progress.get("read"): 
-        buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"read:{guide['id']}")])
-    if guide.get("test_url") and not progress.get("test_done"):
-        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
-        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide['id']}")])
+    if not progress.get("read"):
+        buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
+    if guide_id in progress and not progress.get("test_done") and GUIDES_DICT[guide_id].get("test_url"):
+        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=GUIDES_DICT[guide_id]["test_url"])])
+        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+GUIDES_DICT = {g["id"]: g for g in GUIDES}
 def user(obj):
     uid = str(obj.from_user.id)
     if uid not in USERS: USERS[uid] = {"fio": None, "role": "newbie", "guide_index": 0, "progress": {}}
@@ -808,6 +810,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
