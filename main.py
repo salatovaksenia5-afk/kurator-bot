@@ -299,13 +299,12 @@ def kb_guide_buttons(guide: dict, user_progress: dict):
     if not prog["read"]:
         buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
 
-    # Кнопки теста (если есть URL)
     if guide.get("test_url"):
-        buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=guide["test_url"])])
+    buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
+    # Показываем кнопку "Я прошёл тест" только если гайд прочитан и тест ещё не пройден
+    if prog["read"] and not prog["test_done"]:
+        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
 
-        # Кнопка "Я прошёл тест" должна появляться **если гайд прочитан и тест еще не отмечен как пройден**
-        if prog["read"] and not prog["test_done"]:
-            buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
         # Если тест уже пройден — можно, например, показать "Тест сдан ✅"
         elif prog["test_done"]:
             buttons.append([InlineKeyboardButton(text="✅ Тест сдан", callback_data="noop")])
@@ -380,7 +379,7 @@ async def newbie_test_done(cb: CallbackQuery):
     gs_upsert_summary(cb.from_user.id, u)
 
     await cb.answer("🎉 Тест отмечен как пройденный!")
-    await _send_newbie_guide(cb.from_user.id)  # вызываем функцию, которая реально отправляет следующий гайд
+    await _send_newbie_guide(cb.from_user.id)  # отправляем следующий гайд
 
 
 @dp.callback_query(F.data == "newbie:final")
@@ -779,6 +778,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
