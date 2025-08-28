@@ -311,51 +311,77 @@ def kb_guide_buttons(guide: dict, progress: dict):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-# ====== Отправка следующего гайда ======
-async def send_next_guide(message, u, current_guide_id):
-    guides = GUIDES["newbie"]
-    idx = next((i for i, g in enumerate(guides) if g["id"] == current_guide_id), None)
-
-    if idx is not None and idx + 1 < len(guides):
-        next_guide = guides[idx + 1]
-        kb = kb_guide_buttons(next_guide, u)
-        await message.answer(f"📘 {next_guide['title']}\n\n{next_guide['text']}", reply_markup=kb)
-    else:
-        await message.answer("🎉 Вы прошли все гайды! Остался финальный тест ✅")
-
-
+# ====== Колбэк "Отметить прочитанным" ======
 @router.callback_query(F.data.startswith("newbie:read:"))
 async def cb_read(cb: CallbackQuery):
-    user_id = cb.from_user.id
+    uid = str(cb.from_user.id)
     guide_id = cb.data.split(":")[2]
-    user_progress[user_id][guide_id]["read"] = True
-    await cb.answer("Отмечено как прочитанное ✅")
+    u = USERS[uid]
+
+    progress = u.setdefault("progress", {})
+    guide_progress = progress.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    guide_progress["read"] = True
+    save_users(USERS)
+
+    # Обновляем кнопки
+    guide = next(g for g in GUIDES["newbie"] if g["id"] == guide_id)
     await cb.message.edit_reply_markup(
-        reply_markup=kb_guide_buttons(next(g for g in GUIDES if g["id"] == guide_id),
-                                      user_progress[user_id][guide_id])
+        reply_markup=kb_guide_buttons(guide, guide_progress)
     )
+    await cb.answer("Отмечено как прочитанное ✅")
 
 
-@router.callback_query(F.data.startswith("newbie:testdone:"))
-async def cb_test_done(cb: CallbackQuery):
-    user_id = cb.from_user.id
+# ====== Колбэк "Я выполнил задание" ======
+@router.callback_query(F.data.startswith("newbie:task:"))
+async def cb_task_done(cb: CallbackQuery):
+    uid = str(cb.from_user.id)
     guide_id = cb.data.split(":")[2]
-    user_progress[user_id][guide_id]["test_done"] = True
-    await cb.answer("Тест отмечен как пройденный ✅")
+    u = USERS[uid]
 
-    # показываем следующий гайд, если есть
-    current_index = next(i for i, g in enumerate(GUIDES) if g["id"] == guide_id)
-    if current_index + 1 < len(GUIDES):
-        next_guide = GUIDES[current_index + 1]
-        progress = user_progress[user_id].setdefault(next_guide["id"], {"read": False, "test_done": False})
+    progress = u.setdefault("progress", {})
+    guide_progress = progress.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    guide_progress["task_done"] = True
+    save_users(USERS)
+
+    await cb.answer("Задание отмечено как выполненное ✅")
+
+    # показываем следующий гайд, если можно
+    guides = GUIDES["newbie"]
+    idx = next((i for i, g in enumerate(guides) if g["id"] == guide_id), None)
+    if idx is not None and idx + 1 < len(guides):
+        next_guide = guides[idx + 1]
+        next_progress = progress.setdefault(next_guide["id"], {"read": False, "task_done": False, "test_done": False})
         await cb.message.answer(
-            f"📘 {next_guide['title']}\n\n{next_guide['text']}\n\nСсылка: {next_guide['url']}",
-            reply_markup=kb_guide_buttons(next_guide, progress)
+            f"📘 {next_guide['title']}\n\n{next_guide['text']}\n\n🔗 {next_guide.get('url','–')}",
+            reply_markup=kb_guide_buttons(next_guide, next_progress)
         )
 
 
-# Подключаем роутер
-dp.include_router(router)
+# ====== Колбэк "Я прошёл тест" ======
+@router.callback_query(F.data.startswith("newbie:testdone:"))
+async def cb_test_done(cb: CallbackQuery):
+    uid = str(cb.from_user.id)
+    guide_id = cb.data.split(":")[2]
+    u = USERS[uid]
+
+    progress = u.setdefault("progress", {})
+    guide_progress = progress.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    guide_progress["test_done"] = True
+    save_users(USERS)
+
+    await cb.answer("Тест отмечен как пройденный ✅")
+
+    # показываем следующий гайд, если есть
+    guides = GUIDES["newbie"]
+    idx = next((i for i, g in enumerate(guides) if g["id"] == guide_id), None)
+    if idx is not None and idx + 1 < len(guides):
+        next_guide = guides[idx + 1]
+        next_progress = progress.setdefault(next_guide["id"], {"read": False, "task_done": False, "test_done": False})
+        await cb.message.answer(
+            f"📘 {next_guide['title']}\n\n{next_guide['text']}\n\n🔗 {next_guide.get('url','–')}",
+            reply_markup=kb_guide_buttons(next_guide, next_progress)
+        )
+
 
 # ====== Проверка возможности перейти к следующему гайду ======
 def _can_go_next(u: dict, guide: dict) -> bool:
@@ -824,6 +850,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
