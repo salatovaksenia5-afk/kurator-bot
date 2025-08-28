@@ -363,6 +363,7 @@ async def newbie_mark_task(cb: CallbackQuery):
     await cb.answer("Задание отмечено ✅")
     await send_guide(cb.from_user.id)
 
+
 @dp.callback_query(F.data.startswith("testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
@@ -371,15 +372,15 @@ async def newbie_test_done(cb: CallbackQuery):
     # Отмечаем тест как пройденный
     if guide_id in u["progress"]:
         u["progress"][guide_id]["test_done"] = True
+
+    # Переходим к следующему гайду
+    u["guide_index"] = u.get("guide_index", 0) + 1
+
     save_users(USERS)
     gs_upsert_summary(cb.from_user.id, u)
 
     await cb.answer("🎉 Тест отмечен как пройденный!")
-
-    # Переходим к следующему гайду
-    u["guide_index"] = u.get("guide_index", 0) + 1
-    save_users(USERS)
-    await send_guide(cb.from_user.id)
+    await _send_newbie_guide(cb.from_user.id)  # вызываем функцию, которая реально отправляет следующий гайд
 
 
 @dp.callback_query(F.data == "newbie:final")
@@ -778,6 +779,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
