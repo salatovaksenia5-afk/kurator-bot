@@ -27,6 +27,7 @@ dp = Dispatcher(bot=bot)
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0") or "0")  # твой телеграм ID
 TIMEZONE = timezone(timedelta(hours=3))  # МСК
 PORT = int(os.getenv("PORT", "10000"))
+FINAL_TEST_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header"
 
 HR_CHAT_LINK = os.getenv("HR_CHAT_LINK", "https://t.me/obucheniehub_bot")  # ссылка в чат новичков
 LETL_CODE = os.getenv("LETL_CODE", "letl2025")  # код для летников
@@ -1003,6 +1004,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
