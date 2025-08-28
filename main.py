@@ -289,14 +289,13 @@ def kb_final_test():
     ])
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 # ====== Клавиатура для гайда новичка ======
+from aiogram import Router
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+
+router = Router()  # создаём роутер
+
+# ====== Клавиатура ======
 def kb_guide_buttons(guide: dict, u: dict):
-    """
-    Формирует клавиатуру для гайда новичка:
-    - "Пройти тест" если есть test_url
-    - "Я прошёл тест"
-    - "Выполнить задание" для 3-го гайда
-    - "Отметить прочитанным"
-    """
     buttons = []
     progress = u.setdefault("progress", {}).setdefault(guide["id"], {
         "read": False,
@@ -304,23 +303,21 @@ def kb_guide_buttons(guide: dict, u: dict):
         "test_done": False
     })
 
-    # Кнопка теста
     test_url = guide.get("test_url", "").strip()
     if test_url and not progress.get("test_done"):
         buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=test_url)])
         buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
 
-    # Кнопка задания (только для 3-го гайда)
     if guide.get("num") == 3 and not progress.get("task_done"):
         buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
 
-    # Кнопка "Отметить прочитанным"
     if not progress.get("read"):
         buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+# ====== Отправка следующего гайда ======
 # ====== Отправка следующего гайда ======
 async def send_next_guide(message, u, current_guide_id):
     guides = GUIDES["newbie"]
@@ -335,7 +332,7 @@ async def send_next_guide(message, u, current_guide_id):
 
 
 # ====== Обработка «Я прошёл тест» ======
-@app.callback_query_handler(lambda c: c.data.startswith("newbie:testdone:"))
+@router.callback_query(lambda c: c.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
@@ -345,13 +342,11 @@ async def newbie_test_done(cb: CallbackQuery):
     save_user(u)
 
     await cb.answer("Тест отмечен как пройден ✅")
-
-    # отправляем следующий гайд
     await send_next_guide(cb.message, u, guide_id)
 
 
 # ====== Обработка «Отметить прочитанным» ======
-@app.callback_query_handler(lambda c: c.data.startswith("newbie:read:"))
+@router.callback_query(lambda c: c.data.startswith("newbie:read:"))
 async def newbie_mark_read(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
@@ -361,13 +356,11 @@ async def newbie_mark_read(cb: CallbackQuery):
     save_user(u)
 
     await cb.answer("Отмечено как прочитанное ✅")
-
-    # отправляем следующий гайд
     await send_next_guide(cb.message, u, guide_id)
 
 
 # ====== Обработка «Я выполнил задание» ======
-@app.callback_query_handler(lambda c: c.data.startswith("newbie:task:"))
+@router.callback_query(lambda c: c.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
@@ -377,10 +370,7 @@ async def newbie_task_done(cb: CallbackQuery):
     save_user(u)
 
     await cb.answer("Задание отмечено как выполненное ✅")
-
-    # отправляем следующий гайд
     await send_next_guide(cb.message, u, guide_id)
-
 
 # ====== Проверка возможности перейти к следующему гайду ======
 def _can_go_next(u: dict, guide: dict) -> bool:
@@ -896,6 +886,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
