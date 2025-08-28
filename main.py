@@ -291,29 +291,28 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def kb_guide_buttons(guide: dict, user_progress: dict):
     guide_id = guide["id"]
+    
     prog = user_progress.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     
     buttons = []
 
     # Кнопка "Отметить прочитанным"
     if not prog["read"]:
-        buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
+        buttons.append([InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"read:{guide_id}")])
 
+    # Кнопки теста (если есть URL)
     if guide.get("test_url"):
-    buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
-    # Показываем кнопку "Я прошёл тест" только если гайд прочитан и тест ещё не пройден
-    if prog["read"] and not prog["test_done"]:
-        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
-
-        # Если тест уже пройден — можно, например, показать "Тест сдан ✅"
-        elif prog["test_done"]:
-            buttons.append([InlineKeyboardButton(text="✅ Тест сдан", callback_data="noop")])
+        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
+        # Кнопка "Я прошёл тест" появляется только если гайд прочитан и тест ещё не пройден
+        if prog["read"] and not prog["test_done"]:
+            buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
 
     # Кнопка "Выполнено задание" для 3-го гайда
     if guide.get("num") == 3:
-        buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"task:{guide_id}")])
-    
+        buttons.append([InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"task:{guide_id}")])
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 
 
 
@@ -778,6 +777,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
