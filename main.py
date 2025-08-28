@@ -299,24 +299,37 @@ def kb_guide_buttons(guide: dict):
     buttons = []
 
    # Кнопка теста
-   test_url = guide.get("test_url", "").strip()
-   if test_url:
-       buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=test_url)])
-    # Кнопка "Я прошёл тест" оставляем только если ещё не отмечено
-       if not progress.get("test_done"):
-           buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
+def kb_guide_buttons(guide: dict, u: dict):
+    """
+    Формирует клавиатуру для гайда новичка:
+    - "Пройти тест" если есть test_url
+    - "Отметить тест пройденным"
+    - "Выполнить задание" для 3-го гайда
+    - "Отметить прочитанным"
+    """
+    buttons = []
+
+    # Берём прогресс пользователя по этому гайду
+    progress = u.setdefault("progress", {}).setdefault(
+        guide["id"], {"read": False, "task_done": False, "test_done": False}
+    )
+
+    # Кнопка теста
+    test_url = guide.get("test_url", "").strip()
+    if test_url:
+        buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=test_url)])
+        if not progress.get("test_done"):
+            buttons.append([InlineKeyboardButton(text=f"✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
 
     # Кнопка задания только для 3-го гайда
     if guide.get("num") == 3:
         buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
 
     # Кнопка прочитанного всегда
-    buttons.append([InlineKeyboardButton(text="📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
+    buttons.append([InlineKeyboardButton(text=f"📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-
-# ====== Утилиты ======
 # ====== Утилиты ======
 def user(obj):
     """Возвращает словарь пользователя"""
@@ -850,6 +863,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
