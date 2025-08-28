@@ -195,7 +195,7 @@ def load_guides():
                 {
                     "id": "guide1",
                     "num": 1,
-                    "title": "Первый гайд",
+                    "title": "Как построить общение с учеником?",
                     "text": "переходи по ссылкам и изучай внимательно!",
                     "url": "https://docs.google.com/document/d/1tEiUuP8wAuwsnxQj2qaqpYH_VYj5a-2mNNZG--iv2I4/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
@@ -203,7 +203,7 @@ def load_guides():
                 {
                     "id": "guide2",
                     "num": 2,
-                    "title": "Второй гайд",
+                    "title": "Технические моменты в работе куратора",
                     "text": "переходи по ссылкам и изучай внимательно!",
                     "url": "1) https://docs.google.com/document/d/18ZKfsL12_DpttspiO-0sCR83_-xNBgZ8gsxFf-Fe-q4/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"
@@ -782,6 +782,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
