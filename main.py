@@ -428,7 +428,6 @@ async def newbie_task_done(cb: CallbackQuery):
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
     if idx >= len(items):
-    if idx >= len(items):
         await cb.answer("Все гайды уже пройдены.")
         return
 
@@ -1004,6 +1003,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
