@@ -289,8 +289,8 @@ def kb_final_test():
     ])
 
 # ====== Утилиты ======
-def user(obj: Message | CallbackQuery) -> dict:
-    """Возвращает словарь пользователя по объекту Message или CallbackQuery"""
+def user(obj):
+    """Возвращает словарь пользователя"""
     uid = str(obj.from_user.id)
     if uid not in USERS:
         USERS[uid] = {
@@ -309,6 +309,7 @@ def user(obj: Message | CallbackQuery) -> dict:
         }
         save_users(USERS)
     return USERS[uid]
+
 
 # ====== Клавиатуры для новичка ======
 def kb_newbie_guide(guide: dict):
@@ -822,6 +823,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
