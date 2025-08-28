@@ -413,15 +413,15 @@ async def newbie_mark_read(cb: CallbackQuery):
     gs_upsert_summary(cb.from_user.id, u)
     gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Гайд прочитан", f"guide={guide_id}")
 
-    # Если это 3-й гайд — отправляем предметное задание
-    if current_guide.get("num") == 3:
-        await _send_subject_task(cb.from_user.id, u, current_guide)
-        await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
-        return
-
-    # Продвигаем к следующему гайду
-    u["guide_index"] += 1
+     # Двигаем пользователя вперёд
+    u["guide_index"] = idx + 1
     save_users(USERS)
+
+    # Если это 3-й гайд — выдаём предметное задание
+    if current_guide["id"] == "guide3":
+        await _send_subject_task(cb.from_user.id)
+    else:
+        await _send_newbie_guide(cb.from_user.id)
 
     await cb.answer("✅ Гайд отмечен как прочитанный")
     await _send_newbie_guide(cb.from_user.id)
@@ -1037,6 +1037,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
