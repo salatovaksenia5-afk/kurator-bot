@@ -397,26 +397,37 @@ async def newbie_mark_read(cb: CallbackQuery):
     save_users(USERS)
     await cb.answer("✅ Гайд отмечен как прочитанный")
 
+    # Отправляем клавиатуру с тестом и следующими кнопками
     if _can_go_next(u, guide):
         u["guide_index"] += 1
         save_users(USERS)
         await _send_newbie_guide(cb.from_user.id)
+    else:
+        # Обновляем клавиатуру текущего гайда, чтобы появилась кнопка "Пройти тест" или "Выполнить задание"
+        kb = kb_guide_buttons(guide)
+        await cb.message.edit_reply_markup(reply_markup=kb)
+
 
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
 async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[2]
-    progress = u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
-    progress["test_done"] = True
+    idx = u.get("guide_index", 0)
+    guide = GUIDES["newbie"][idx]
+
+    st = u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st["test_done"] = True
     save_users(USERS)
     await cb.answer("✅ Тест отмечен как пройденный")
 
-    idx = u.get("guide_index", 0)
-    guide = GUIDES["newbie"][idx] if idx < len(GUIDES["newbie"]) else None
-    if guide and guide["id"] == guide_id and _can_go_next(u, guide):
+    if _can_go_next(u, guide):
         u["guide_index"] += 1
         save_users(USERS)
         await _send_newbie_guide(cb.from_user.id)
+    else:
+        kb = kb_guide_buttons(guide)
+        await cb.message.edit_reply_markup(reply_markup=kb)
+
 
 @dp.callback_query(F.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
@@ -442,6 +453,9 @@ async def newbie_task_done(cb: CallbackQuery):
         u["guide_index"] += 1
         save_users(USERS)
         await _send_newbie_guide(cb.from_user.id)
+    else:
+        kb = kb_guide_buttons(guide)
+        await cb.message.edit_reply_markup(reply_markup=kb)
 
 @dp.callback_query(F.data == "newbie:final")
 async def newbie_final_test(cb: CallbackQuery):
@@ -836,6 +850,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
