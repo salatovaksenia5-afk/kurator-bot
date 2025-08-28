@@ -288,7 +288,6 @@ def kb_final_test():
         [InlineKeyboardButton(text="📝 Пройти финальный тест", callback_data="newbie:final")]
     ])
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 def kb_guide_buttons(guide: dict):
     """
     Формирует клавиатуру для гайда новичка:
@@ -300,12 +299,12 @@ def kb_guide_buttons(guide: dict):
     buttons = []
 
    # Кнопка теста
-test_url = guide.get("test_url", "").strip()
-if test_url:
-    buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=test_url)])
+   test_url = guide.get("test_url", "").strip()
+   if test_url:
+       buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=test_url)])
     # Кнопка "Я прошёл тест" оставляем только если ещё не отмечено
-    if not progress.get("test_done"):
-        buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
+       if not progress.get("test_done"):
+           buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
 
     # Кнопка задания только для 3-го гайда
     if guide.get("num") == 3:
@@ -851,6 +850,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
