@@ -373,8 +373,6 @@ def user(obj: Message | CallbackQuery) -> dict:
     return USERS[uid]
 
 
-# ====== Отправка гайда ======
-# ====== Отправка гайда ======
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u:
@@ -405,6 +403,10 @@ async def _send_newbie_guide(uid: int):
     # Кнопка прочитанного
     buttons.append([InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
 
+    # Кнопка для выполнения предметного задания (только для 3-го гайда)
+    if guide.get("num") == 3:
+        buttons.append([InlineKeyboardButton("✅ Я выполнил задание", callback_data=f"newbie:task:{guide['id']}")])
+
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     await bot.send_message(
@@ -413,8 +415,6 @@ async def _send_newbie_guide(uid: int):
         f"{guide.get('text','–')}\n\n🔗 {guide.get('url','–')}",
         reply_markup=kb
     )
-
-
 @dp.callback_query(F.data.startswith("newbie:read:"))
 async def newbie_mark_read(cb: CallbackQuery):
     u = user(cb)
@@ -434,12 +434,14 @@ async def newbie_mark_read(cb: CallbackQuery):
     # Отмечаем как прочитанный
     progress = u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
     progress["read"] = True
-    u["guide_index"] += 1  # сразу продвигаем к следующему
     save_users(USERS)
     await cb.answer("✅ Гайд отмечен как прочитанный")
 
-    # Отправляем следующий гайд автоматически
-    await _send_newbie_guide(cb.from_user.id)
+    # Если можно перейти к следующему
+    if _can_go_next(u, current_guide):
+        u["guide_index"] += 1
+        save_users(USERS)
+        await _send_newbie_guide(cb.from_user.id)
 
 
 @dp.callback_query(F.data.startswith("newbie:testdone:"))
@@ -451,8 +453,18 @@ async def newbie_test_done(cb: CallbackQuery):
     save_users(USERS)
     await cb.answer("✅ Тест отмечен как пройденный")
 
+    # После прохождения теста проверяем, можно ли перейти дальше
+    items = GUIDES["newbie"]
+    idx = u.get("guide_index", 0)
+    current_guide = items[idx] if idx < len(items) else None
+    if current_guide and current_guide["id"] == guide_id:
+        if _can_go_next(u, current_guide):
+            u["guide_index"] += 1
+            save_users(USERS)
+            await _send_newbie_guide(cb.from_user.id)
 
-# ====== Callback: предметное задание ======
+
+
 @dp.callback_query(F.data.startswith("newbie:task:"))
 async def newbie_task_done(cb: CallbackQuery):
     u = user(cb)
@@ -478,14 +490,6 @@ async def newbie_task_done(cb: CallbackQuery):
         u["guide_index"] += 1
         save_users(USERS)
         await _send_newbie_guide(cb.from_user.id)
-
-# ====== Проверка, можно ли перейти к следующему гайду ======
-def _can_go_next(u: dict, guide: dict) -> bool:
-    st = u.get("progress", {}).get(guide["id"], {})
-    # Если есть тест и есть предметное задание, всё должно быть выполнено
-    task_required = guide.get("num") == 3
-    test_required = bool(guide.get("test_url", "").strip())
-    return st.get("read") and (not test_required or st.get("test_done")) and (not task_required or st.get("task_done"))
 
 
 # ====== Финальный тест ======
@@ -894,6 +898,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
