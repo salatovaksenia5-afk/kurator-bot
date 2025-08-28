@@ -211,7 +211,7 @@ def load_guides():
                 {
                     "id": "guide3",
                     "num": 3,
-                    "title": "Третий гайд",
+                    "title": "Как проверять домашние задания + практика",
                     "text": "переходи по ссылкам и изучай внимательно!",
                     "url": "https://docs.google.com/document/d/1gkhcvRV6HydDILnm24jY7ltOKsriM71jdHdzBn2b9VY/edit?usp=sharing",
                     "test_url": "https://example.com/guide1"
@@ -220,9 +220,9 @@ def load_guides():
                     "id": "guide4",
                     "num": 4,
                     "title": "Четвёртый гайд",
-                    "text": "В этом гайде нет теста, поэтому нажимай сразу кнопку и переходи к финальному!)",
+                    "text": "После этого гайда сразу идет финальный тест! решай внимательно!)",
                     "url": "https://docs.google.com/document/d/1HzJy-JQCl9wo7nOpp1_EBpRI1UkiIVxPgjr1pK1nQr4/edit?usp=sharing",
-                    "test_url": "https://forms.gle/xyz222"
+                    "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header"
                 }
             ],
             "letnik": [
@@ -782,6 +782,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
