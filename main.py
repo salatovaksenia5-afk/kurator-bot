@@ -383,8 +383,8 @@ async def _send_newbie_guide(uid: int):
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
 
-    # Если все гайды пройдены — финальный тест
     if idx >= len(items):
+        # Все гайды пройдены, финальный тест
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton("🎉 Пройти финальный тест", callback_data="newbie:final")]
         ])
@@ -395,17 +395,26 @@ async def _send_newbie_guide(uid: int):
 
     # Формируем кнопки
     buttons = []
-    if guide.get("test_url"):
-        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
+
+    # Кнопка теста, если есть test_url
+    test_url = guide.get("test_url", "").strip()
+    if test_url:
+        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=test_url)])
         buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
+
+    # Кнопка прочитанного
     buttons.append([InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")])
+
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
+    # Отправляем сообщение
     await bot.send_message(
         uid,
-        f"📘 Гайд {guide['num']}: {guide['title']}\n\n{guide['text']}\n\n🔗 {guide['url']}",
+        f"📘 Гайд {guide.get('num','–')}: {guide.get('title','–')}\n\n"
+        f"{guide.get('text','–')}\n\n🔗 {guide.get('url','–')}",
         reply_markup=kb
     )
+
 
 # ====== Отправка предметного задания ======
 async def _send_subject_task(uid: int, u: dict, guide: dict):
@@ -436,21 +445,13 @@ async def newbie_mark_read(cb: CallbackQuery):
         return
 
     u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})["read"] = True
-    save_users(USERS)
-    gs_upsert_summary(cb.from_user.id, u)
-    gs_log_event(cb.from_user.id, u.get("fio","—"), "newbie", u.get("subject","—"), "Гайд прочитан", f"guide={guide_id}")
-
-    # Если это 3-й гайд — отправляем предметное задание
-    if current_guide.get("num") == 3:
-        await _send_subject_task(cb.from_user.id, u, current_guide)
-        await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
-        return
-
-    # Продвигаем к следующему гайду
-    u["guide_index"] += 1
+    u["guide_index"] += 1  # сразу продвигаем к следующему
     save_users(USERS)
     await cb.answer("✅ Гайд отмечен как прочитанный")
+
+    # Отправляем следующий гайд автоматически
     await _send_newbie_guide(cb.from_user.id)
+
 
 # ====== Выполнение предметного задания ======
 @dp.callback_query(F.data.startswith("newbie:task:"))
@@ -1032,6 +1033,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
