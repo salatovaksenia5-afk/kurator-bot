@@ -381,6 +381,7 @@ async def _send_newbie_guide(uid: int):
 
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
+
     if idx >= len(items):
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton("🎉 Перейти к финальному тесту", callback_data="newbie:final")]
@@ -390,21 +391,34 @@ async def _send_newbie_guide(uid: int):
 
     guide = items[idx]
 
-    buttons = [[InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")]]
+    buttons = []
 
+    # Кнопка "Отметить прочитанным"
+    buttons.append([InlineKeyboardButton(
+        text="✅ Отметить прочитанным",
+        callback_data=f"newbie:read:{guide['id']}"
+    )])
+
+    # Кнопки теста, если есть test_url
     if guide.get("test_url") and guide["test_url"].strip():
-        buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
-        buttons.append([InlineKeyboardButton("✅ Я прошёл тест", callback_data=f"newbie:testdone:{guide['id']}")])
+        buttons.append([InlineKeyboardButton(
+            text="📝 Пройти тест",
+            url=guide["test_url"]
+        )])
+        buttons.append([InlineKeyboardButton(
+            text="✅ Я прошёл тест",
+            callback_data=f"newbie:testdone:{guide['id']}"
+        )])
 
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     await bot.send_message(
         uid,
-        f"📘 Гайд {guide['num']}: {guide['title']}\n\n{guide['text']}\n\n🔗 {guide['url']}",
+        f"📘 Гайд {guide['num']}: {guide['title']}\n\n"
+        f"{guide['text']}\n\n"
+        f"🔗 {guide['url']}",
         reply_markup=kb
     )
-
-
 
 # ====== Отметка прочитанного ======
 @dp.callback_query(F.data.startswith("newbie:read:"))
@@ -433,13 +447,14 @@ async def newbie_mark_read(cb: CallbackQuery):
         await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
         return
 
-    # Увеличиваем индекс **до отправки следующего гайда**
-    u["guide_index"] += 1
-    save_users(USERS)
+     # Продвигаем к следующему гайду
+u["guide_index"] += 1
+save_users(USERS)
 
-    await cb.answer("✅ Гайд отмечен как прочитанный")
-    # Отправляем следующий гайд
-    await _send_newbie_guide(cb.from_user.id)
+await cb.answer("✅ Гайд отмечен как прочитанный")
+
+# Автоматически отправляем следующий гайд
+await _send_newbie_guide(cb.from_user.id)
 
 # ====== Выполнение задания ======
 @dp.callback_query(F.data.startswith("newbie:task:"))
@@ -1055,6 +1070,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
