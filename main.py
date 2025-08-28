@@ -365,12 +365,18 @@ async def _send_newbie_guide(uid: int):
 
     guide = items[idx]
 
-    kb_buttons = [[InlineKeyboardButton("✅ Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")]]
-    if guide.get("has_test"):
-        kb_buttons.append([InlineKeyboardButton("📝 Пройти тест", callback_data=f"newbie:test:{guide['id']}")])
+    kb_buttons = [[InlineKeyboardButton("📖 Отметить прочитанным", callback_data=f"newbie:read:{guide['id']}")]]
+
+    # если у гайда есть тест — добавляем кнопку
+    if guide.get("test_url"):
+        kb_buttons.append([InlineKeyboardButton("📝 Пройти тест", url=guide["test_url"])])
+        kb_buttons.append([InlineKeyboardButton("✅ Отметить тест пройденным", callback_data=f"newbie:testdone:{guide['id']}")])
+
     kb = InlineKeyboardMarkup(inline_keyboard=kb_buttons)
 
-    await bot.send_message(uid, f"📘 {guide['title']}\n\n{guide['content']}", reply_markup=kb)
+    text = f"📘 {guide['title']}\n\n{guide['text']}\n\nСсылка на материал: {guide['url']}"
+    await bot.send_message(uid, text, reply_markup=kb)
+
 
 # ====== Отправка предметного задания ======
 async def _send_subject_task(uid: int, u: dict, guide: dict):
@@ -448,6 +454,33 @@ async def newbie_task_done(cb: CallbackQuery):
 
     await cb.answer("✅ Задание принято!")
     await _send_newbie_guide(cb.from_user.id)
+@dp.callback_query(F.data.startswith("newbie:testdone:"))
+async def newbie_test_done(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[2]
+
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
+    if idx >= len(items):
+        await cb.answer("Все гайды уже пройдены.")
+        return
+
+    current_guide = items[idx]
+    if current_guide["id"] != guide_id:
+        await cb.answer("Это не текущий гайд.")
+        return
+
+    pr = u.setdefault("progress", {})
+    st = pr.setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    st["test_done"] = True
+
+    # Продвигаем к следующему гайду
+    u["guide_index"] = idx + 1
+    save_users(USERS)
+
+    await cb.answer("✅ Тест отмечен как пройденный")
+    await _send_newbie_guide(cb.from_user.id)
+
 
 # ======== Хэндлер финального теста ========
 @dp.callback_query(F.data == "newbie:final")
@@ -1004,6 +1037,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
