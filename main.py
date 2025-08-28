@@ -534,7 +534,7 @@ await cb.message.answer(
     reply_markup=kb
 )
 
-    await cb.answer()
+await cb.answer()
 
 
 
@@ -771,6 +771,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
