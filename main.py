@@ -448,13 +448,13 @@ async def newbie_mark_read(cb: CallbackQuery):
         return
 
      # Продвигаем к следующему гайду
-u["guide_index"] += 1
-save_users(USERS)
+    u["guide_index"] += 1
+    save_users(USERS)
 
-await cb.answer("✅ Гайд отмечен как прочитанный")
+    await cb.answer("✅ Гайд отмечен как прочитанный")
 
 # Автоматически отправляем следующий гайд
-await _send_newbie_guide(cb.from_user.id)
+    await _send_newbie_guide(cb.from_user.id)
 
 # ====== Выполнение задания ======
 @dp.callback_query(F.data.startswith("newbie:task:"))
@@ -1070,6 +1070,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
