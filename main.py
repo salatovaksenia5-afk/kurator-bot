@@ -374,6 +374,7 @@ def user(obj: Message | CallbackQuery) -> dict:
 
 
 # ====== Отправка гайда ======
+# ====== Отправка следующего гайда новичку ======
 async def _send_newbie_guide(uid: int):
     u = USERS.get(str(uid))
     if not u:
@@ -382,6 +383,7 @@ async def _send_newbie_guide(uid: int):
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
 
+    # Все гайды пройдены
     if idx >= len(items):
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton("🎉 Перейти к финальному тесту", callback_data="newbie:final")]
@@ -428,6 +430,7 @@ async def newbie_mark_read(cb: CallbackQuery):
 
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
+
     if idx >= len(items):
         await cb.answer("Все гайды уже пройдены.")
         return
@@ -441,20 +444,19 @@ async def newbie_mark_read(cb: CallbackQuery):
     u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})["read"] = True
     save_users(USERS)
 
-    # Если это 3-й гайд — отправляем предметное задание
+    # Предметное задание для 3-го гайда
     if current_guide.get("num") == 3:
         await _send_subject_task(cb.from_user.id, u, current_guide)
         await cb.answer("✅ Гайд отмечен как прочитанный. Предметное задание выдано.")
         return
 
-     # Продвигаем к следующему гайду
+    # Продвигаем индекс и отправляем следующий гайд
     u["guide_index"] += 1
     save_users(USERS)
 
     await cb.answer("✅ Гайд отмечен как прочитанный")
-
-# Автоматически отправляем следующий гайд
     await _send_newbie_guide(cb.from_user.id)
+
 
 # ====== Выполнение задания ======
 @dp.callback_query(F.data.startswith("newbie:task:"))
@@ -1070,6 +1072,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
