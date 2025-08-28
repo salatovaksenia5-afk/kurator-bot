@@ -302,14 +302,20 @@ def kb_guide_buttons(guide: dict, user_progress: dict):
     # Кнопки теста (если есть URL)
     if guide.get("test_url"):
         buttons.append([InlineKeyboardButton(text="📝 Пройти тест", url=guide["test_url"])])
+
+        # Кнопка "Я прошёл тест" должна появляться **если гайд прочитан и тест еще не отмечен как пройден**
         if prog["read"] and not prog["test_done"]:
             buttons.append([InlineKeyboardButton(text="✅ Я прошёл тест", callback_data=f"testdone:{guide_id}")])
-    
+        # Если тест уже пройден — можно, например, показать "Тест сдан ✅"
+        elif prog["test_done"]:
+            buttons.append([InlineKeyboardButton(text="✅ Тест сдан", callback_data="noop")])
+
     # Кнопка "Выполнено задание" для 3-го гайда
     if guide.get("num") == 3:
         buttons.append([InlineKeyboardButton(text="✅ Я выполнил задание", callback_data=f"task:{guide_id}")])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 
 
 
@@ -358,15 +364,23 @@ async def newbie_mark_task(cb: CallbackQuery):
     await send_guide(cb.from_user.id)
 
 @dp.callback_query(F.data.startswith("testdone:"))
-async def newbie_mark_testdone(cb: CallbackQuery):
+async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[1]
-    prog = u.setdefault("progress", {}).setdefault(guide_id, {"read": True, "task_done": False, "test_done": False})
-    prog["test_done"] = True
-    u["guide_index"] += 1
+
+    # Отмечаем тест как пройденный
+    if guide_id in u["progress"]:
+        u["progress"][guide_id]["test_done"] = True
     save_users(USERS)
-    await cb.answer("Тест отмечен ✅")
+    gs_upsert_summary(cb.from_user.id, u)
+
+    await cb.answer("🎉 Тест отмечен как пройденный!")
+
+    # Переходим к следующему гайду
+    u["guide_index"] = u.get("guide_index", 0) + 1
+    save_users(USERS)
     await send_guide(cb.from_user.id)
+
 
 @dp.callback_query(F.data == "newbie:final")
 async def newbie_final_test(cb: CallbackQuery):
@@ -764,6 +778,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
