@@ -374,7 +374,22 @@ def user(obj: Message | CallbackQuery) -> dict:
 
 
 # ====== Отправка гайда ======
-async def _send_newbie_guide(message: Message, guide: dict):
+async def _send_newbie_guide(uid: int):
+    u = USERS.get(str(uid))
+    if not u:
+        return
+
+    idx = u.get("guide_index", 0)
+    items = GUIDES["newbie"]
+    if idx >= len(items):
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton("🎉 Перейти к финальному тесту", callback_data="newbie:final")]
+        ])
+        await bot.send_message(uid, "Все гайды пройдены!", reply_markup=kb)
+        return
+
+    guide = items[idx]
+
     buttons = []
 
     # Кнопка "Отметить прочитанным"
@@ -383,7 +398,7 @@ async def _send_newbie_guide(message: Message, guide: dict):
         callback_data=f"newbie:read:{guide['id']}"
     )])
 
-    # Кнопки теста (если есть test_url)
+    # Кнопки теста, если есть test_url
     if guide.get("test_url") and guide["test_url"].strip():
         buttons.append([InlineKeyboardButton(
             text="📝 Пройти тест",
@@ -396,7 +411,8 @@ async def _send_newbie_guide(message: Message, guide: dict):
 
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    await message.answer(
+    await bot.send_message(
+        uid,
         f"📘 Гайд {guide['num']}: {guide['title']}\n\n"
         f"{guide['text']}\n\n"
         f"🔗 {guide['url']}",
@@ -1075,6 +1091,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
