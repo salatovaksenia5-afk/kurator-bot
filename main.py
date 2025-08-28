@@ -367,18 +367,17 @@ async def newbie_test_done(cb: CallbackQuery):
     u = user(cb)
     guide_id = cb.data.split(":")[1]
 
-    # Отмечаем тест как пройденный
-    if guide_id in u["progress"]:
-        u["progress"][guide_id]["test_done"] = True
+    # отмечаем тест как пройденный
+    u["progress"].setdefault(guide_id, {})
+    u["progress"][guide_id]["test_done"] = True
 
-    # Переходим к следующему гайду
+    # увеличиваем индекс для следующего гайда
     u["guide_index"] = u.get("guide_index", 0) + 1
-
     save_users(USERS)
-    gs_upsert_summary(cb.from_user.id, u)
 
-    await cb.answer("🎉 Тест отмечен как пройденный!")
-    await _send_newbie_guide(cb.from_user.id)  # отправляем следующий гайд
+    await cb.answer("✅ Тест отмечен как пройденный!")
+    await _send_newbie_guide(cb.from_user.id)
+
 
 
 @dp.callback_query(F.data == "newbie:final")
@@ -510,11 +509,12 @@ async def progress_me(cb: CallbackQuery):
     await cb.answer()
 
 
+# ============== КАТАЛОГ (новички) ==============
 @dp.callback_query(F.data == "guides:menu")
 async def guides_menu(cb: CallbackQuery):
     u = user(cb)
     if u.get("role") == "letnik":
-        # краткий список для летников
+        # Для летников оставляем старый вариант
         lines = []
         for g in GUIDES["letnik"]:
             lines.append(f"• {g['title']} — {g['url']} (тест: {g.get('test_url','—')})")
@@ -522,25 +522,25 @@ async def guides_menu(cb: CallbackQuery):
         await cb.answer()
         return
 
-    # новичок
+    # Новичок
     idx = u.get("guide_index", 0)
     items = GUIDES["newbie"]
 
-    # все гайды пройдены
+    # Все гайды пройдены
     if idx >= len(items):
         await cb.message.answer("🎉 Все гайды пройдены. Доступен финальный тест.", reply_markup=kb_final_test())
         await cb.answer()
         return
 
-    # показываем текущий гайд
-    guide = items[idx]
-    kb = kb_guide_buttons(guide, u["progress"])
+    # Показываем текущий гайд с кнопками через kb_guide_buttons
+    g = items[idx]
+    kb = kb_guide_buttons(g, u["progress"])
     await cb.message.answer(
-        f"📘 Текущий гайд #{guide['num']}: {guide['title']}\n{guide['url']}",
+        f"📘 Текущий гайд #{g['num']}: {g['title']}\n\n{g['text']}\n🔗 {g['url']}",
         reply_markup=kb
-)
-
+    )
     await cb.answer()
+
 
 
 
@@ -777,6 +777,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
