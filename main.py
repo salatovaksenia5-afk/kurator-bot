@@ -344,50 +344,36 @@ def user(obj):
 
 
 
-# ====== Отправка гайда новичка ======
-async def _send_newbie_guide(uid: int):
-    u = USERS.get(str(uid))
-    if not u:
-        return
+@dp.callback_query(F.data.startswith("read:"))
+async def newbie_mark_read(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[1]
+    prog = u.setdefault("progress", {}).setdefault(guide_id, {"read": False, "task_done": False, "test_done": False})
+    prog["read"] = True
+    save_users(USERS)
+    await cb.answer("Прочитано ✅")
+    await send_guide(cb.from_user.id)
 
-    idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
+@dp.callback_query(F.data.startswith("task:"))
+async def newbie_mark_task(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[1]
+    prog = u.setdefault("progress", {}).setdefault(guide_id, {"read": True, "task_done": False, "test_done": False})
+    prog["task_done"] = True
+    save_users(USERS)
+    await cb.answer("Задание отмечено ✅")
+    await send_guide(cb.from_user.id)
 
-    # Все гайды пройдены — показываем финальный тест
-    if idx >= len(items):
-        kb = kb_final_test()
-        await bot.send_message(uid, "🎉 Все гайды пройдены!", reply_markup=kb)
-        return
-
-    guide = items[idx]
-    kb = kb_guide_buttons(guide, u)
-
-    await bot.send_message(
-        uid,
-        f"📘 Гайд {guide.get('num','–')}: {guide.get('title','–')}\n\n"
-        f"{guide.get('text','–')}\n\n🔗 {guide.get('url','–')}",
-        reply_markup=kb
-    )
-
-
-
-async def send_guide(uid: int):
-    u = USERS[str(uid)]
-    idx = u.get("guide_index", 0)
-    items = GUIDES["newbie"]
-
-    if idx >= len(items):
-        await bot.send_message(uid, "🎉 Все гайды пройдены! Финальный тест доступен.", reply_markup=kb_final_test())
-        return
-
-    guide = items[idx]
-    kb = kb_guide_buttons(guide, u["progress"])  # передаем правильный словарь прогресса
-    await bot.send_message(
-        uid,
-        f"📘 {guide['title']}\n\n{guide['text']}\n🔗 {guide['url']}",
-        reply_markup=kb
-    )
-
+@dp.callback_query(F.data.startswith("testdone:"))
+async def newbie_mark_testdone(cb: CallbackQuery):
+    u = user(cb)
+    guide_id = cb.data.split(":")[1]
+    prog = u.setdefault("progress", {}).setdefault(guide_id, {"read": True, "task_done": False, "test_done": False})
+    prog["test_done"] = True
+    u["guide_index"] += 1
+    save_users(USERS)
+    await cb.answer("Тест отмечен ✅")
+    await send_guide(cb.from_user.id)
 
 @dp.callback_query(F.data == "newbie:final")
 async def newbie_final_test(cb: CallbackQuery):
@@ -541,11 +527,13 @@ async def guides_menu(cb: CallbackQuery):
         return
 
     # показываем текущий гайд
-    g = items[idx]
-    await cb.message.answer(
-        f"📘 Текущий гайд #{g['num']}: {g['title']}\n{g['url']}",
-        reply_markup=kb_mark_read(g["id"])
-    )
+guide = items[idx]
+kb = kb_guide_buttons(guide, u["progress"])
+await cb.message.answer(
+    f"📘 Текущий гайд #{guide['num']}: {guide['title']}\n{guide['url']}",
+    reply_markup=kb
+)
+
     await cb.answer()
 
 
@@ -783,6 +771,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
