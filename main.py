@@ -31,7 +31,7 @@ FINAL_TEST_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD
 
 HR_CHAT_LINK = os.getenv("HR_CHAT_LINK", "https://t.me/obucheniehub_bot")  # ссылка в чат новичков
 LETL_CODE = os.getenv("LETL_CODE", "letl2025")  # код для летников
-NEWBIE_CODE = os.getenv("NEWBIE_CODE", "newper2025")
+NEWBIE_CODE = os.getenv("NEWBIE_CODE", "newbie2025")
 
 
 
@@ -446,12 +446,12 @@ async def cmd_start(message: Message):
             # ✅ логика для летников
             await message.answer("Добро пожаловать! Ты вошёл по коду летников.")
             # здесь оставь свой код для летников
-
+            letl2025
         elif code == NEWBIE_CODE:
             # ✅ логика для новичков
             await message.answer("Добро пожаловать! Ты вошёл по коду новичков.")
             # здесь оставь свой код для новичков
-
+            newbie2025
         else:
             await message.answer("❌ Неверный код. Попробуй ещё раз: /start <код>")
             return
@@ -796,6 +796,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
