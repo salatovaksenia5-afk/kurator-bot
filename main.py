@@ -397,44 +397,6 @@ async def newbie_final_test(cb: CallbackQuery):
     await cb.answer("🎉 Поздравляем! Вы прошли все гайды и финальный тест!")
     await bot.send_message(cb.from_user.id, "🏆 Курс завершён! Теперь вы полностью прошли обучение.")
 
-@dp.callback_query(F.data.startswith("role:"))
-async def role_set(cb: CallbackQuery):
-    u = user(cb)
-    role = cb.data.split(":")[1]
-
-    # Летник
-    if role == "letnik":
-        u["awaiting_code"] = True
-        u["role"] = None
-        save_users(USERS)
-        await cb.message.answer("🔑 Введи код доступа для летников:")
-        await cb.answer()
-        return
-
-    # Новичок
-    if role == "newbie":
-        u["role"] = None  # роль пока не подтверждена
-        u["awaiting_code"] = True
-        save_users(USERS)
-        await cb.message.answer("🔑 Введи код доступа для новичков:")
-        await cb.answer()
-        return
-@dp.message(state="waiting_for_code")
-async def process_code(message: Message, state: FSMContext):
-    code = message.text.strip().lower()
-
-    if code == NEWBIE_CODE:
-        await message.answer("✅ Код верный! Добро пожаловать, новичок!")
-        # тут вызываем функцию регистрации новичка, например, newbie2025()
-    elif code == LETL_CODE:
-        await message.answer("✅ Код верный! Добро пожаловать, летник!")
-        # тут вызываем функцию регистрации летника
-    else:
-        await message.answer("❌ Неверный код. Попробуй ещё раз:")
-        return
-
-    await state.clear()
-
 
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
 @dp.message(CommandStart())
@@ -473,28 +435,31 @@ async def handle_text(message: Message):
     await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
 
               
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
-    args = message.text.split()
-
-    if len(args) > 1:
-        code = args[1].strip().lower()
-
-        if code == LETL_CODE:
-            # ✅ логика для летников
-            await message.answer("Добро пожаловать! Ты вошёл по коду летников.")
-            # здесь оставь свой код для летников
-            letl2025
-        elif code == NEWBIE_CODE:
-            # ✅ логика для новичков
-            await message.answer("Добро пожаловать! Ты вошёл по коду новичков.")
-            # здесь оставь свой код для новичков
-            newbie2025
-        else:
-            await message.answer("❌ Неверный код. Попробуй ещё раз: /start <код>")
-            return
+# Код для новичка
+if u.get("awaiting_code"):
+    if text.lower() == NEWBIE_CODE.lower():  # проверка без учёта регистра
+        u["awaiting_code"] = False
+        u["role"] = "newbie"
+        u["status"] = "Новичок (код подтвержден)"
+        save_users(USERS)
+        gs_log_event(uid, u.get("fio",""), "newbie", u.get("subject",""), "Код подтвержден")
+        gs_upsert_summary(uid, u)
+        await message.answer("🔓 Код верный. Добро пожаловать, новичок!", reply_markup=kb_main("newbie"))
     else:
-        await message.answer("Чтобы начать, введи код доступа так: /start <код>")
+        await message.answer("❌ Неверный код. Попробуй ещё раз.")
+    return
+  # Код для летника
+    if u.get("awaiting_code"):
+        if text == LETL_CODE:
+            u["awaiting_code"] = False
+            u["role"] = "letnik"
+            u["status"] = "Летник (код подтвержден)"
+            save_users(USERS)
+            gs_log_event(uid, u.get("fio",""), "letnik", u.get("subject",""), "Код подтвержден")
+            gs_upsert_summary(uid, u)
+            await message.answer("🔓 Код верный. Доступ открыт.", reply_markup=kb_main("letnik"))
+        else:
+            await message.answer("❌ Неверный код. Попробуй ещё раз.")
         return
 
 @dp.callback_query(F.data.startswith("subject:set:"))
@@ -834,6 +799,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
