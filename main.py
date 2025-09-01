@@ -196,7 +196,7 @@ def load_guides():
                     "id": "guide1",
                     "num": 1,
                     "title": "Как построить общение с учеником?",
-                    "text": "Обрати внимание, что в конце гайда есть видео, с которым тоже нужно ознакомиться!",
+                    "text": "Обрати внимание, что в гайде есть видео, с которым тоже нужно ознакомиться!",
                     "url": "https://docs.google.com/document/d/1tEiUuP8wAuwsnxQj2qaqpYH_VYj5a-2mNNZG--iv2I4/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
                 },
@@ -204,7 +204,7 @@ def load_guides():
                     "id": "guide2",
                     "num": 2,
                     "title": "Технические моменты в работе куратора",
-                    "text": "Обрати внимание, что в конце гайда есть видео, с которым тоже нужно ознакомиться!!",
+                    "text": "Обрати внимание, что в гайде есть видео, с которым тоже нужно ознакомиться!!",
                     "url": "1) https://docs.google.com/document/d/18ZKfsL12_DpttspiO-0sCR83_-xNBgZ8gsxFf-Fe-q4/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"
                 },
@@ -212,7 +212,7 @@ def load_guides():
                     "id": "guide3",
                     "num": 3,
                     "title": "Как проверять домашние задания + практика",
-                    "text": "Переходи по ссылкам, изучай и делай задание!",
+                    "text": "Переходи по ссылкам, изучай и делай задание! Задание выполняй в файле и потом скидывай своему старшему куратору",
                     "url": "https://docs.google.com/document/d/1gkhcvRV6HydDILnm24jY7ltOKsriM71jdHdzBn2b9VY/edit?usp=sharing",
                     "test_url": "https://example.com/guide1"
                 },
@@ -782,6 +782,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
