@@ -432,8 +432,11 @@ async def handle_text(message: Message):
     fio = message.text.strip()
     user_data[uid] = {"fio": fio, "step": "subject"}
     gs_upsert_summary(uid, user_data[uid])
-  await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_)
-                      
+    await message.answer(
+    f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:",
+    reply_markup=kb_subjects
+)
+              
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     args = message.text.split()
@@ -795,6 +798,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
