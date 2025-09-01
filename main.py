@@ -7,7 +7,7 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart, Command, Text
+from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 )
@@ -313,25 +313,6 @@ def kb_guide_buttons(guide: dict, user_progress: dict):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-@dp.message(Text("Я новичок"))
-async def newbie_button(message: Message, state: FSMContext):
-    await message.answer("Отлично! Теперь введи код доступа:")
-    await state.set_state("waiting_for_code")
-@dp.message(state="waiting_for_code")
-async def process_code(message: Message, state: FSMContext):
-    code = message.text.strip().lower()
-
-    if code == NEWBIE_CODE:
-        await message.answer("✅ Код верный! Добро пожаловать, новичок!")
-        # await newbie2025()
-    elif code == LETL_CODE:
-        await message.answer("✅ Код верный! Добро пожаловать, летник!")
-        # await letl2025()
-    else:
-        await message.answer("❌ Неверный код. Попробуй ещё раз:")
-        return
-
-    await state.clear()
 
 
 # ====== Утилиты ======
@@ -415,6 +396,43 @@ async def newbie_final_test(cb: CallbackQuery):
     await cb.answer("🎉 Поздравляем! Вы прошли все гайды и финальный тест!")
     await bot.send_message(cb.from_user.id, "🏆 Курс завершён! Теперь вы полностью прошли обучение.")
 
+@dp.callback_query(F.data.startswith("role:"))
+async def role_set(cb: CallbackQuery):
+    u = user(cb)
+    role = cb.data.split(":")[1]
+
+    # Летник
+    if role == "letnik":
+        u["awaiting_code"] = True
+        u["role"] = None
+        save_users(USERS)
+        await cb.message.answer("🔑 Введи код доступа для летников:")
+        await cb.answer()
+        return
+
+    # Новичок
+    if role == "newbie":
+        u["role"] = None  # роль пока не подтверждена
+        u["awaiting_code"] = True
+        save_users(USERS)
+        await cb.message.answer("🔑 Введи код доступа для новичков:")
+        await cb.answer()
+        return
+@dp.message(state="waiting_for_code")
+async def process_code(message: Message, state: FSMContext):
+    code = message.text.strip().lower()
+
+    if code == NEWBIE_CODE:
+        await message.answer("✅ Код верный! Добро пожаловать, новичок!")
+        # тут вызываем функцию регистрации новичка, например, newbie2025()
+    elif code == LETL_CODE:
+        await message.answer("✅ Код верный! Добро пожаловать, летник!")
+        # тут вызываем функцию регистрации летника
+    else:
+        await message.answer("❌ Неверный код. Попробуй ещё раз:")
+        return
+
+    await state.clear()
 
 
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
@@ -815,6 +833,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
