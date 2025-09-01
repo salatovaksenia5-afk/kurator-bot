@@ -432,25 +432,23 @@ async def handle_text(message: Message):
     fio = message.text.strip()
     user_data[uid] = {"fio": fio, "step": "subject"}
     gs_upsert_summary(uid, user_data[uid])
-    await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
-
-    # Код для летника
-    @dp.message(CommandStart())
+    await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_
+@dp.message(CommandStart())
 async def cmd_start(message: Message):
     args = message.text.split()
-    
+
     if len(args) > 1:
         code = args[1].strip().lower()
 
         if code == LETL_CODE:
             # ✅ логика для летников
             await message.answer("Добро пожаловать! Ты вошёл по коду летников.")
-            # здесь твой код для летников
+            # здесь оставь свой код для летников
 
         elif code == NEWBIE_CODE:
             # ✅ логика для новичков
             await message.answer("Добро пожаловать! Ты вошёл по коду новичков.")
-            # здесь твой код для новичков
+            # здесь оставь свой код для новичков
 
         else:
             await message.answer("❌ Неверный код. Попробуй ещё раз: /start <код>")
@@ -458,7 +456,6 @@ async def cmd_start(message: Message):
     else:
         await message.answer("Чтобы начать, введи код доступа так: /start <код>")
         return
-
 
 @dp.callback_query(F.data.startswith("subject:set:"))
 async def subject_set(cb: CallbackQuery):
@@ -797,6 +794,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
