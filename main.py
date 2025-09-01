@@ -428,26 +428,26 @@ async def handle_text(message: Message):
            u["fio"] = fio
            u["awaiting_fio"] = False
            save_users(USERS)
-    gs_upsert_summary(uid, u)  # обновление таблицы
-    fio = message.text.strip()
-    user_data[uid] = {"fio": fio, "step": "subject"}
-    gs_upsert_summary(uid, user_data[uid])
-    await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
+           gs_upsert_summary(uid, u)  # обновление таблицы
+           fio = message.text.strip()
+           user_data[uid] = {"fio": fio, "step": "subject"}
+           gs_upsert_summary(uid, user_data[uid])
+           await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
 
               
 # Код для новичка
-if u.get("awaiting_code"):
-    if text.lower() == NEWBIE_CODE.lower():  # проверка без учёта регистра
-        u["awaiting_code"] = False
-        u["role"] = "newbie"
-        u["status"] = "Новичок (код подтвержден)"
-        save_users(USERS)
-        gs_log_event(uid, u.get("fio",""), "newbie", u.get("subject",""), "Код подтвержден")
-        gs_upsert_summary(uid, u)
-        await message.answer("🔓 Код верный. Добро пожаловать, новичок!", reply_markup=kb_main("newbie"))
-    else:
-        await message.answer("❌ Неверный код. Попробуй ещё раз.")
-    return
+    if u.get("awaiting_code"):
+        if text.lower() == NEWBIE_CODE.lower():  # проверка без учёта регистра
+            u["awaiting_code"] = False
+            u["role"] = "newbie"
+            u["status"] = "Новичок (код подтвержден)"
+            save_users(USERS)
+            gs_log_event(uid, u.get("fio",""), "newbie", u.get("subject",""), "Код подтвержден")
+            gs_upsert_summary(uid, u)
+            await message.answer("🔓 Код верный. Добро пожаловать, новичок!", reply_markup=kb_main("newbie"))
+        else:
+            await message.answer("❌ Неверный код. Попробуй ещё раз.")
+        return
   # Код для летника
     if u.get("awaiting_code"):
         if text == LETL_CODE:
@@ -799,6 +799,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
