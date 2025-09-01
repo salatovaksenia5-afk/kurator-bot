@@ -204,8 +204,8 @@ def load_guides():
                     "id": "guide2",
                     "num": 2,
                     "title": "Технические моменты в работе куратора",
-                    "text": "Обрати внимание, что в гайде есть видео, с которым тоже нужно ознакомиться!!",
-                    "url": "1) https://docs.google.com/document/d/18ZKfsL12_DpttspiO-0sCR83_-xNBgZ8gsxFf-Fe-q4/edit?usp=sharing",
+                    "text": "Обрати внимание, что в гайде есть видео, с которыми тоже нужно ознакомиться!!",
+                    "url": "https://docs.google.com/document/d/1fSBYOrbt6g4HxDSc63qjJM_xXxDscvlz_N_ovGR2kEw/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"
                 },
                 {
@@ -214,14 +214,14 @@ def load_guides():
                     "title": "Как проверять домашние задания + практика",
                     "text": "Переходи по ссылкам, изучай и делай задание! Задание выполняй в файле и потом скидывай своему старшему куратору",
                     "url": "https://docs.google.com/document/d/1gkhcvRV6HydDILnm24jY7ltOKsriM71jdHdzBn2b9VY/edit?usp=sharing",
-                    "test_url": "https://example.com/guide1"
+                    "test_url": "https://docs.google.com/document/d/1NKQRuiJ-almJuSaI3_TLvn-FvIPLv8-EvsGUDL_bMZ8/edit?usp=sharing"
                 },
                 {
                     "id": "guide4",
                     "num": 4,
                     "title": "Оставшиеся моменты",
                     "text": "После этого гайда сразу идет финальный тест! решай внимательно!)",
-                    "url": "https://docs.google.com/document/d/1HzJy-JQCl9wo7nOpp1_EBpRI1UkiIVxPgjr1pK1nQr4/edit?usp=sharing",
+                    "url": "https://docs.google.com/document/d/18ZKfsL12_DpttspiO-0sCR83_-xNBgZ8gsxFf-Fe-q4/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD3Kbc9A3t2b-nKpoglDGvhIXv9gnw/viewform?usp=header"
                 }
             ],
@@ -782,6 +782,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
