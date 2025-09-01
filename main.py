@@ -482,25 +482,51 @@ async def subject_set(cb: CallbackQuery):
 async def role_set(cb: CallbackQuery):
     u = user(cb)
     role = cb.data.split(":")[1]
+
     if role == "letnik":
         u["awaiting_code"] = True
-        u["role"] = None  # до ввода кода
+        u["role"] = None  # роль до ввода кода
         save_users(USERS)
         await cb.message.answer("🔑 Введи код доступа для летников:")
         await cb.answer()
         return
 
-    # Новичок
-    u["role"] = "newbie"
-    u["status"] = "Новичок (старт обучения)"
-    save_users(USERS)
-    gs_log_event(cb.from_user.id, u.get("fio",""), "newbie", u.get("subject",""), "Выбрана роль: новичок")
-    await cb.message.answer(
-     "🎉 Ты зарегистрирован как новичок!\nТеперь у тебя доступно меню:",
-     reply_markup=kb_main("newbie")
-    )
-    await cb.answer()
-    gs_upsert_summary(cb.from_user.id, u)
+    elif role == "newbie":
+        u["awaiting_code"] = True
+        u["role"] = None  # роль до ввода кода
+        save_users(USERS)
+        await cb.message.answer("🔑 Введи код доступа для новичков:")
+        await cb.answer()
+        return
+@dp.message(F.text)
+async def handle_text(message: Message):
+    u = user(message)
+    uid = message.from_user.id
+    text = (message.text or "").strip()
+
+    # Ввод кода для летника или новичка
+    if u.get("awaiting_code"):
+        if text.lower() == NEWBIE_CODE.lower():
+            u["awaiting_code"] = False
+            u["role"] = "newbie"
+            u["status"] = "Новичок (код подтвержден)"
+            save_users(USERS)
+            gs_log_event(uid, u.get("fio",""), "newbie", u.get("subject",""), "Код подтвержден")
+            gs_upsert_summary(uid, u)
+            await message.answer("🔓 Код верный. Добро пожаловать, новичок!", reply_markup=kb_main("newbie"))
+            return
+        elif text == LETL_CODE:
+            u["awaiting_code"] = False
+            u["role"] = "letnik"
+            u["status"] = "Летник (код подтвержден)"
+            save_users(USERS)
+            gs_log_event(uid, u.get("fio",""), "letnik", u.get("subject",""), "Код подтвержден")
+            gs_upsert_summary(uid, u)
+            await message.answer("🔓 Код верный. Доступ открыт.", reply_markup=kb_main("letnik"))
+            return
+        else:
+            await message.answer("❌ Неверный код. Попробуй ещё раз.")
+            return
    
 
 
@@ -799,6 +825,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
