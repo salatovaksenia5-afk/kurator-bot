@@ -1,6 +1,7 @@
 import os
 import asyncio
 import json
+from aiogram.fsm.context import FSMContext
 from datetime import datetime, timedelta, time, timezone
 from gsheets import WS_SUMMARY, gs_log_event
 from aiohttp import web
@@ -833,6 +834,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
