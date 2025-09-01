@@ -313,6 +313,25 @@ def kb_guide_buttons(guide: dict, user_progress: dict):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+@dp.message(Text("Я новичок"))
+async def newbie_button(message: Message, state: FSMContext):
+    await message.answer("Отлично! Теперь введи код доступа:")
+    await state.set_state("waiting_for_code")
+@dp.message(state="waiting_for_code")
+async def process_code(message: Message, state: FSMContext):
+    code = message.text.strip().lower()
+
+    if code == NEWBIE_CODE:
+        await message.answer("✅ Код верный! Добро пожаловать, новичок!")
+        # await newbie2025()
+    elif code == LETL_CODE:
+        await message.answer("✅ Код верный! Добро пожаловать, летник!")
+        # await letl2025()
+    else:
+        await message.answer("❌ Неверный код. Попробуй ещё раз:")
+        return
+
+    await state.clear()
 
 
 # ====== Утилиты ======
@@ -796,6 +815,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
