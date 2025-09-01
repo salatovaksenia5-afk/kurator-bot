@@ -31,6 +31,9 @@ FINAL_TEST_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd3OSHI2tOQINP7jhuQKD
 
 HR_CHAT_LINK = os.getenv("HR_CHAT_LINK", "https://t.me/obucheniehub_bot")  # ссылка в чат новичков
 LETL_CODE = os.getenv("LETL_CODE", "letl2025")  # код для летников
+NEWBIE_CODE = os.getenv("NEWBIE_CODE", "newper2025")
+
+
 
 REMIND_HOURS = [14, 22]  # напоминания новичкам
 DEADLINE_HOUR = 22       # после 22:00 «Я выполнил задание» закрывается
@@ -432,18 +435,30 @@ async def handle_text(message: Message):
     await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
 
     # Код для летника
-    if u.get("awaiting_code"):
-        if text == LETL_CODE:
-            u["awaiting_code"] = False
-            u["role"] = "letnik"
-            u["status"] = "Летник (код подтвержден)"
-            save_users(USERS)
-            gs_log_event(uid, u.get("fio",""), "letnik", u.get("subject",""), "Код подтвержден")
-            gs_upsert_summary(uid, u)
-            await message.answer("🔓 Код верный. Доступ открыт.", reply_markup=kb_main("letnik"))
+    @dp.message(CommandStart())
+async def cmd_start(message: Message):
+    args = message.text.split()
+    
+    if len(args) > 1:
+        code = args[1].strip().lower()
+
+        if code == LETL_CODE:
+            # ✅ логика для летников
+            await message.answer("Добро пожаловать! Ты вошёл по коду летников.")
+            # здесь твой код для летников
+
+        elif code == NEWBIE_CODE:
+            # ✅ логика для новичков
+            await message.answer("Добро пожаловать! Ты вошёл по коду новичков.")
+            # здесь твой код для новичков
+
         else:
-            await message.answer("❌ Неверный код. Попробуй ещё раз.")
+            await message.answer("❌ Неверный код. Попробуй ещё раз: /start <код>")
+            return
+    else:
+        await message.answer("Чтобы начать, введи код доступа так: /start <код>")
         return
+
 
 @dp.callback_query(F.data.startswith("subject:set:"))
 async def subject_set(cb: CallbackQuery):
@@ -782,6 +797,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
