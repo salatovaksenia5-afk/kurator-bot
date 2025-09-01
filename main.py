@@ -205,7 +205,7 @@ def load_guides():
                     "num": 2,
                     "title": "Технические моменты в работе куратора",
                     "text": "Обрати внимание, что в гайде есть видео, с которыми тоже нужно ознакомиться!!",
-                    "url": "https://docs.google.com/document/d/1fSBYOrbt6g4HxDSc63qjJM_xXxDscvlz_N_ovGR2kEw/edit?usp=sharing",
+                    "url": "https://docs.google.com/document/d/1JH0-6m1ygQ4bTjoWTITXMtqFEXGAvUAgieyD8doK21o/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"
                 },
                 {
@@ -782,6 +782,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
