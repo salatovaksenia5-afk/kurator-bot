@@ -397,71 +397,75 @@ async def newbie_final_test(cb: CallbackQuery):
     await cb.answer("🎉 Поздравляем! Вы прошли все гайды и финальный тест!")
     await bot.send_message(cb.from_user.id, "🏆 Курс завершён! Теперь вы полностью прошли обучение.")
 
-
 # ============== ХЕНДЛЕРЫ: РЕГИСТРАЦИЯ / ДАННЫЕ ==============
+
 @dp.message(CommandStart())
 async def start(message: Message):
     u = user(message)
     u["awaiting_fio"] = True
     save_users(USERS)
-    await message.answer("👋 Привет! Я бот-куратор.\nНапиши, пожалуйста, свою 🎉фамилию и имя (ФИО).")
+    await message.answer(
+        "👋 Привет! Я бот-куратор.\nНапиши, пожалуйста, свою 🎉фамилию и имя (ФИО)."
+    )
+
 
 @dp.message(F.text)
 async def handle_text(message: Message):
-    global user_data
     u = user(message)
     uid = message.from_user.id
     text = (message.text or "").strip()
 
-    # Ввод ФИО
+    # ===== Ввод ФИО =====
     if u.get("awaiting_fio"):
         u["fio"] = text
         u["awaiting_fio"] = False
         u["awaiting_subject"] = True
         u.setdefault("status", "Старт обучения")
         save_users(USERS)
-        gs_log_event(uid, u["fio"], u.get("role",""), u.get("subject",""), "ФИО введено")
+        gs_log_event(uid, u["fio"], u.get("role", ""), u.get("subject", ""), "ФИО введено")
         gs_upsert_summary(uid, u)
-        if u.get("awaiting_fio"):
-    # сохраняем ФИО
-           fio = message.text.strip()
-           u["fio"] = fio
-           u["awaiting_fio"] = False
-           save_users(USERS)
-           gs_upsert_summary(uid, u)  # обновление таблицы
-           fio = message.text.strip()
-           user_data[uid] = {"fio": fio, "step": "subject"}
-           gs_upsert_summary(uid, user_data[uid])
-           await message.answer(f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:", reply_markup=kb_subjects())
+        await message.answer(
+            f"✅ ФИО сохранено: {text}\nТеперь выбери предмет:",
+            reply_markup=kb_subjects()
+        )
+        return
 
-              
-# Код для новичка
+    # ===== Ввод кода для летника или новичка =====
     if u.get("awaiting_code"):
-        if text.lower() == NEWBIE_CODE.lower():  # проверка без учёта регистра
+        if text.lower() == NEWBIE_CODE.lower():
             u["awaiting_code"] = False
             u["role"] = "newbie"
             u["status"] = "Новичок (код подтвержден)"
             save_users(USERS)
-            gs_log_event(uid, u.get("fio",""), "newbie", u.get("subject",""), "Код подтвержден")
+            gs_log_event(uid, u.get("fio", ""), "newbie", u.get("subject", ""), "Код подтвержден")
             gs_upsert_summary(uid, u)
-            await message.answer("🔓 Код верный. Добро пожаловать, новичок!", reply_markup=kb_main("newbie"))
-        else:
-            await message.answer("❌ Неверный код. Попробуй ещё раз.")
-        return
-  # Код для летника
-    if u.get("awaiting_code"):
-        if text == LETL_CODE:
+            await message.answer(
+                "🔓 Код верный. Добро пожаловать, новичок!",
+                reply_markup=kb_main("newbie")
+            )
+            return
+        elif text == LETL_CODE:
             u["awaiting_code"] = False
             u["role"] = "letnik"
             u["status"] = "Летник (код подтвержден)"
             save_users(USERS)
-            gs_log_event(uid, u.get("fio",""), "letnik", u.get("subject",""), "Код подтвержден")
+            gs_log_event(uid, u.get("fio", ""), "letnik", u.get("subject", ""), "Код подтвержден")
             gs_upsert_summary(uid, u)
-            await message.answer("🔓 Код верный. Доступ открыт.", reply_markup=kb_main("letnik"))
+            await message.answer(
+                "🔓 Код верный. Доступ открыт.",
+                reply_markup=kb_main("letnik")
+            )
+            return
         else:
             await message.answer("❌ Неверный код. Попробуй ещё раз.")
-        return
+            return
 
+    # ===== Другие сообщения (если нужно) =====
+    # Тут можно добавить логику для сообщений вне регистрации/кода
+    return
+
+
+# ===== Выбор предмета =====
 @dp.callback_query(F.data.startswith("subject:set:"))
 async def subject_set(cb: CallbackQuery):
     u = user(cb)
@@ -478,11 +482,14 @@ async def subject_set(cb: CallbackQuery):
     )
     await cb.answer()
 
+
+# ===== Выбор роли =====
 @dp.callback_query(F.data.startswith("role:"))
 async def role_set(cb: CallbackQuery):
     u = user(cb)
     role = cb.data.split(":")[1]
 
+    # Летник
     if role == "letnik":
         u["awaiting_code"] = True
         u["role"] = None  # роль до ввода кода
@@ -491,6 +498,7 @@ async def role_set(cb: CallbackQuery):
         await cb.answer()
         return
 
+    # Новичок
     elif role == "newbie":
         u["awaiting_code"] = True
         u["role"] = None  # роль до ввода кода
@@ -498,6 +506,8 @@ async def role_set(cb: CallbackQuery):
         await cb.message.answer("🔑 Введи код доступа для новичков:")
         await cb.answer()
         return
+
+
 @dp.message(F.text)
 async def handle_text(message: Message):
     u = user(message)
@@ -825,6 +835,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
