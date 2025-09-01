@@ -436,6 +436,7 @@ async def handle_text(message: Message):
     f"✅ ФИО сохранено: {fio}\nТеперь выбери предмет:",
     reply_markup=kb_subjects
 )
+
               
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
@@ -798,6 +799,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
