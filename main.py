@@ -200,7 +200,7 @@ def load_guides():
                     "id": "guide1",
                     "num": 1,
                     "title": "Как построить общение с учеником?",
-                    "text": "Обрати внимание, что в гайде есть видео, с которым тоже нужно ознакомиться!",
+                    "text": "Читай гайд внимательно!",
                     "url": "https://docs.google.com/document/d/1tEiUuP8wAuwsnxQj2qaqpYH_VYj5a-2mNNZG--iv2I4/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSf3wh-yOoLOrGYkCaBZ5a0jfOP1dr_8OdbDJ4nHT5ZU9Ws5Wg/viewform?usp=header"
                 },
@@ -208,7 +208,7 @@ def load_guides():
                     "id": "guide2",
                     "num": 2,
                     "title": "Технические моменты в работе куратора",
-                    "text": "Обрати внимание, что в гайде есть видео, с которыми тоже нужно ознакомиться!!",
+                    "text": "Читай гайд внимательно!!",
                     "url": "https://docs.google.com/document/d/1JH0-6m1ygQ4bTjoWTITXMtqFEXGAvUAgieyD8doK21o/edit?usp=sharing",
                     "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"
                 },
@@ -234,7 +234,7 @@ def load_guides():
                 {"id": "l2", "title": "Летник 2", "url": "https://example.com/l2", "test_url": "https://docs.google.com/forms/d/e/1FAIpQLSeOe5IXIKFsclxP0mTSeDdPK_cX1qdtTAtUofjlilu9UGHVyA/viewform?usp=header"},
                 {"id": "l3", "title": "Летник 3", "url": "https://example.com/l3", "test_url": "https://example.com/lt3test"}
             ],
-            "subjects": ["математика", "информатика", "физика", "русский язык", "обществознание", "биология", "химия"]
+            "subjects": ["математика", "информатика", "физика", "русский язык", "обществознание", "биология", "химия", "история", "ОГЭ математика"]
         }
         # сохраняем начальные гайды в файл, чтобы не ругались при следующем запуске
         _write_json(GUIDES_FILE, data)
@@ -829,6 +829,7 @@ if __name__ == "__main__":
         import traceback
         print("❌ Ошибка при запуске:")
         traceback.print_exc()
+
 
 
 
